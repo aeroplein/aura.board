@@ -184,6 +184,8 @@ function getCardColorPresentation(value) {
       backgroundColor: hex,
       borderColor: hex,
       color: readableColors.text,
+      '--card-bg-color': hex,
+      '--card-border-color': hex,
       '--card-text-color': readableColors.text,
       '--card-muted-color': readableColors.muted,
       '--card-chip-bg': readableColors.chipBg,
@@ -191,6 +193,16 @@ function getCardColorPresentation(value) {
       boxShadow: '0 8px 22px rgba(94, 84, 142, 0.12)'
     }
   };
+}
+
+function applyCardColorPresentation(cardEl, colorPresentation) {
+  Object.entries(colorPresentation.style).forEach(([key, value]) => {
+    if (key.startsWith('--')) {
+      cardEl.style.setProperty(key, value);
+    } else {
+      cardEl.style[key] = value;
+    }
+  });
 }
 
 function setCustomColorSelection(hex) {
@@ -439,9 +451,7 @@ function refreshStudioDisplay() {
     const colorPresentation = getCardColorPresentation(it.color);
     cardEl.className = `draggable-card glass-card p-3 flex flex-col justify-between ${colorPresentation.className}`;
     cardEl.id = `card-${it.id}`;
-    Object.entries(colorPresentation.style).forEach(([key, value]) => {
-      cardEl.style[key] = value;
-    });
+    applyCardColorPresentation(cardEl, colorPresentation);
     let tiltHash = 0;
     const idStr = String(it.id || '');
     for (let ci = 0; ci < idStr.length; ci++) tiltHash += idStr.charCodeAt(ci);
