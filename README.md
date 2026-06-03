@@ -1,4 +1,4 @@
-<img width="507" height="632" alt="resim" src="https://github.com/user-attachments/assets/f52e07a2-4dd5-4511-88b0-d2e24a2314fa" /># Digital Vision Board
+# Digital Vision Board
 
 Digital Vision Board is a student portfolio/course project for creating personal vision boards with movable notes, quotes, images, AI-assisted inspiration, and lightweight collaboration.
 
