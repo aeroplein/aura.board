@@ -1,0 +1,1 @@
+{"name":"Digital Vision Board","description":"An interactive digital vision board with cloud sync, drag-and-drop customization, inspiration galleries powered by Gemini, collaborative push notifications, and robust offline mode.","requestFramePermissions":["notifications"],"majorCapabilities":["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]}

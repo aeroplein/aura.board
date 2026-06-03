@@ -1,0 +1,6 @@
+@{
+    Layout = null;
+    var indexPath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "wwwroot", "index.html");
+}
+
+@Html.Raw(System.IO.File.ReadAllText(indexPath))

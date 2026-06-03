@@ -1,0 +1,1693 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Aura Board • Dreamy Gen Z Visual Canvas</title>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+    
+    <!-- Tailwind CSS (Play CDN with Config) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              lilac: '#C8B6FF',
+              lavender: '#B8C0FF',
+              cream: '#F8F7FF',
+              blush: '#FFD6E7',
+              dusty: '#9F86C0',
+              plum: '#5E548E',
+            },
+            fontFamily: {
+              sans: ['"Plus Jakarta Sans"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+              mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
+            }
+          }
+        }
+      }
+    </script>
+
+
+    <!-- Dashboard homepage styles -->
+
+    <!-- Global UI tokens, cards, studio — incremental layer -->
+    <style>
+      :root {
+        /* Palette (unchanged) */
+        --glass-bg: rgba(252, 251, 255, 0.92);
+        --glass-border: rgba(200, 182, 255, 0.42);
+        --glass-shadow:
+          0 1px 0 rgba(255, 255, 255, 0.85) inset,
+          0 2px 6px rgba(94, 84, 142, 0.05),
+          0 10px 28px -6px rgba(94, 84, 142, 0.09);
+        /* Type rhythm */
+        --text-xs: 0.75rem;
+        --text-sm: 0.875rem;
+        --text-base: 0.9375rem;
+        --leading-tight: 1.25;
+        --leading-body: 1.55;
+        --leading-relaxed: 1.65;
+        --tracking-tight: -0.02em;
+        --tracking-label: 0.06em;
+        /* Spacing scale (4px base) */
+        --space-2: 0.5rem;
+        --space-3: 0.75rem;
+        --space-4: 1rem;
+        --space-5: 1.25rem;
+        --space-6: 1.5rem;
+        --space-8: 2rem;
+      }
+      
+      .dark {
+        --glass-bg: rgba(32, 29, 48, 0.94);
+        --glass-border: rgba(159, 134, 192, 0.28);
+        --glass-shadow:
+          0 1px 0 rgba(255, 255, 255, 0.04) inset,
+          0 8px 24px -4px rgba(0, 0, 0, 0.35);
+      }
+
+      body {
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        font-size: var(--text-base);
+        line-height: var(--leading-body);
+        letter-spacing: -0.01em;
+        background-color: #F6F4FA;
+        overflow-x: hidden;
+        transition: background-color 0.4s ease;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      /* Desk paper grain — CSS only, no image assets */
+      body::before {
+        content: '';
+        position: fixed;
+        inset: 0;
+        z-index: 0;
+        pointer-events: none;
+        opacity: 0.45;
+        background-image:
+          repeating-linear-gradient(
+            0deg,
+            transparent,
+            transparent 3px,
+            rgba(94, 84, 142, 0.012) 3px,
+            rgba(94, 84, 142, 0.012) 4px
+          ),
+          repeating-linear-gradient(
+            90deg,
+            transparent,
+            transparent 5px,
+            rgba(200, 182, 255, 0.018) 5px,
+            rgba(200, 182, 255, 0.018) 6px
+          );
+      }
+
+      .dark body {
+        background-color: #0F0E17;
+      }
+
+      .dark body::before {
+        opacity: 0.2;
+      }
+
+      h1, h2, h3, h4, .fs-1, .fs-3, .fs-5 {
+        letter-spacing: var(--tracking-tight);
+        line-height: var(--leading-tight);
+      }
+
+      .font-mono,
+      [class*="font-mono"] {
+        letter-spacing: var(--tracking-label);
+      }
+
+      /* Paper desk card (keeps .glass-card name for JS compatibility) */
+      .glass-card {
+        position: relative;
+        background: var(--glass-bg);
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
+        border: 1px solid var(--glass-border);
+        box-shadow: var(--glass-shadow);
+        border-radius: 1.2rem 1.45rem 1.35rem 1.5rem;
+        transition:
+          transform 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+          box-shadow 0.22s ease,
+          border-color 0.22s ease;
+      }
+
+      .glass-card::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        pointer-events: none;
+        opacity: 0.35;
+        background: linear-gradient(
+          145deg,
+          rgba(255, 255, 255, 0.5) 0%,
+          transparent 42%,
+          rgba(200, 182, 255, 0.06) 100%
+        );
+      }
+
+      .dark .glass-card::after {
+        opacity: 0.12;
+        background: linear-gradient(145deg, rgba(255, 255, 255, 0.06) 0%, transparent 50%);
+      }
+
+      .glass-card:hover {
+        transform: translateY(-2px);
+        border-color: rgba(200, 182, 255, 0.55);
+        box-shadow:
+          0 1px 0 rgba(255, 255, 255, 0.9) inset,
+          0 4px 12px rgba(94, 84, 142, 0.08),
+          0 14px 32px -8px rgba(94, 84, 142, 0.12);
+      }
+      
+      .dark .glass-card:hover {
+        box-shadow:
+          0 1px 0 rgba(255, 255, 255, 0.06) inset,
+          0 12px 28px -6px rgba(0, 0, 0, 0.5);
+      }
+
+      /* Site chrome */
+      .site-nav {
+        padding-block: var(--space-3);
+        box-shadow: 0 1px 0 rgba(200, 182, 255, 0.2);
+      }
+
+      .site-nav .container {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.85rem;
+        flex-wrap: wrap;
+      }
+
+      .site-brand {
+        flex: 0 0 auto;
+        min-width: max-content;
+      }
+
+      .nav-menu-toggle {
+        display: none;
+      }
+
+      #nav-links {
+        display: flex !important;
+        align-items: center;
+        justify-content: center;
+        gap: 0.35rem;
+        flex: 1 1 24rem;
+        min-width: 0;
+        overflow-x: auto;
+        overflow-y: hidden;
+        padding: 0.12rem 0.2rem;
+        scrollbar-width: none;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      #nav-links::-webkit-scrollbar {
+        display: none;
+      }
+
+      #nav-links button {
+        position: relative;
+        letter-spacing: var(--tracking-label);
+        font-size: var(--text-xs);
+        border-radius: 0.85rem;
+        flex: 0 0 auto;
+        white-space: nowrap;
+        transition: color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
+      }
+
+      #nav-links button:focus-visible {
+        outline: 2px solid rgba(159, 134, 192, 0.65);
+        outline-offset: 2px;
+      }
+
+      #nav-links button.bg-white {
+        box-shadow: 0 1px 3px rgba(94, 84, 142, 0.08);
+      }
+
+      .site-actions {
+        flex: 0 1 auto;
+        min-width: 0;
+        justify-content: flex-end;
+      }
+
+      #session-profile {
+        min-width: 0;
+      }
+
+      #session-profile .session-card {
+        min-width: 0;
+        max-width: 12.5rem;
+      }
+
+      #session-profile .session-copy {
+        min-width: 0;
+      }
+
+      #session-profile .session-profile-button:focus-visible {
+        outline: 2px solid #C8B6FF;
+        outline-offset: 3px;
+        border-radius: 999px;
+      }
+
+      #session-profile .session-name,
+      #session-profile .session-status {
+        display: block;
+        max-width: 7.5rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .app-main {
+        padding-top: var(--space-6);
+        padding-bottom: var(--space-8);
+      }
+
+      /* Status toast strip */
+      .status-banner {
+        border-radius: 0.9rem 1.1rem 0.95rem 1.05rem;
+        font-size: var(--text-xs);
+        line-height: var(--leading-relaxed);
+      }
+
+      .status-banner.status-ok {
+        background: rgba(236, 253, 245, 0.85) !important;
+        border-color: rgba(167, 243, 208, 0.9) !important;
+        color: #166534 !important;
+      }
+
+      .status-banner.status-warn {
+        background: rgba(255, 241, 245, 0.9) !important;
+        border-color: rgba(255, 214, 231, 0.95) !important;
+        color: #7c4a6a !important;
+      }
+
+      /* Gallery / AI state panels */
+      .state-panel {
+        border-radius: 1.25rem 1.5rem 1.2rem 1.4rem;
+        min-height: 14rem;
+      }
+
+      #gallery-error.state-panel {
+        border: 1px dashed rgba(220, 100, 120, 0.45);
+        background: rgba(255, 245, 247, 0.95) !important;
+        color: #9f3d52 !important;
+        line-height: var(--leading-relaxed);
+      }
+
+      #gallery-loader.state-panel .animate-spin {
+        animation-duration: 1.4s;
+      }
+
+      #gallery-empty.state-panel h4 {
+        letter-spacing: var(--tracking-tight);
+      }
+
+      #gallery-items-container > [class*="col-"]:nth-child(3n + 2) .glass-card {
+        transform: rotate(0.25deg);
+      }
+
+      #gallery-items-container > [class*="col-"]:nth-child(3n) .glass-card {
+        padding: 0.85rem 1rem;
+      }
+
+      #no-elements-banner {
+        animation: settleIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+      }
+
+      #no-elements-banner h4 {
+        letter-spacing: var(--tracking-tight);
+      }
+
+      @keyframes settleIn {
+        from { opacity: 0; transform: translateY(8px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+
+      #ai-drawer-loader,
+      #gallery-loader.state-panel {
+        animation: breathe 2.2s ease-in-out infinite;
+      }
+
+      @keyframes breathe {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.72; }
+      }
+
+      /* Card Resize Handle Styling */
+      .card-resize-handle {
+        position: absolute;
+        right: 8px;
+        bottom: 8px;
+        width: 14px;
+        height: 14px;
+        cursor: se-resize;
+        z-index: 30;
+        color: inherit;
+        opacity: 0.5;
+        transition: opacity 0.2s, transform 0.2s;
+      }
+      .card-resize-handle:hover {
+        opacity: 0.9;
+        transform: scale(1.1);
+      }
+
+      /* Canvas Grid Area — linen dot grid */
+      .canvas-workspace-bg {
+        background-color: #FAF9FC;
+        background-image:
+          radial-gradient(rgba(159, 134, 192, 0.09) 1px, transparent 1px),
+          radial-gradient(rgba(159, 134, 192, 0.06) 1px, transparent 1px),
+          linear-gradient(180deg, rgba(255, 255, 255, 0.4) 0%, transparent 30%);
+        background-size: 22px 22px, 22px 22px, 100% 100%;
+        background-position: 0 0, 11px 11px, 0 0;
+      }
+
+      .dark .canvas-workspace-bg {
+        background-color: #16141f;
+      }
+
+      /* Soft desk accents — toned down so cards stay focal */
+      .bg-blob {
+        position: absolute;
+        border-radius: 50%;
+        filter: blur(90px);
+        opacity: 0.28;
+        z-index: 0;
+        pointer-events: none;
+        animation: drift 32s infinite alternate ease-in-out;
+      }
+
+      @keyframes drift {
+        0% { transform: translate(0, 0) scale(1); }
+        50% { transform: translate(60px, -40px) scale(1.15); }
+        100% { transform: translate(-30px, 50px) scale(0.9); }
+      }
+
+      /* Active custom animations */
+      .fade-in-up {
+        animation: fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      }
+
+      @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(16px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+
+      /* Canvas stage cards — sticky-note tilt via --card-tilt from JS */
+      .draggable-card {
+        position: absolute;
+        cursor: grab;
+        touch-action: none;
+        --card-tilt: 0deg;
+        transform: rotate(var(--card-tilt));
+        transition: box-shadow 0.18s ease, transform 0.12s ease;
+        transform-origin: center center;
+        z-index: 10;
+        border-radius: 1rem 1.15rem 1.05rem 1.1rem;
+      }
+      .draggable-card:hover:not(:active) {
+        transform: rotate(var(--card-tilt)) translateY(-1px);
+        box-shadow:
+          0 1px 0 rgba(255, 255, 255, 0.75) inset,
+          0 6px 18px -4px rgba(94, 84, 142, 0.14);
+      }
+      .draggable-card:active {
+        cursor: grabbing;
+        transform: scale(1.008) rotate(calc(var(--card-tilt) + 0.5deg));
+        box-shadow: 0 8px 20px -6px rgba(94, 84, 142, 0.18);
+      }
+      .draggable-card.is-dragging {
+        z-index: 9999 !important;
+      }
+
+      .brand-mark {
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+      }
+
+      .brand-mark:hover {
+        transform: rotate(-2deg) scale(1.03);
+      }
+
+      @media (max-width: 767.98px) {
+        .site-nav .container {
+          padding-inline: var(--space-4) !important;
+          align-items: center;
+        }
+
+        .site-brand {
+          flex: 1 1 auto;
+        }
+
+        .nav-menu-toggle {
+          order: 3;
+          display: flex;
+          flex: 1 0 100%;
+          align-items: center;
+          justify-content: space-between;
+          gap: 0.5rem;
+          padding: 0.65rem 0.8rem;
+          border: 1px solid rgba(200, 182, 255, 0.34);
+          border-radius: 0.95rem;
+          background: rgba(255, 255, 255, 0.68);
+          color: #5E548E;
+          box-shadow: 0 4px 14px -10px rgba(94, 84, 142, 0.42);
+        }
+
+        #nav-links {
+          display: none !important;
+          order: 4;
+          flex-basis: 100%;
+          flex-direction: column;
+          align-items: stretch;
+          justify-content: flex-start;
+          gap: 0.35rem;
+          padding: 0.55rem;
+          border: 1px solid rgba(200, 182, 255, 0.26);
+          border-radius: 1rem;
+          background: rgba(255, 255, 255, 0.78);
+          box-shadow: 0 12px 26px -18px rgba(94, 84, 142, 0.55);
+          overflow: visible;
+        }
+
+        #nav-links.is-open {
+          display: flex !important;
+        }
+
+        #nav-links button {
+          width: 100%;
+          justify-content: flex-start;
+          padding: 0.55rem 0.72rem !important;
+          font-size: 0.68rem;
+        }
+
+        .site-actions {
+          gap: 0.45rem !important;
+          flex: 0 0 auto;
+        }
+
+        #session-profile .session-card {
+          gap: 0.35rem !important;
+        }
+
+        #session-profile .session-copy {
+          display: none !important;
+        }
+
+        #btn-darkMode,
+        #session-profile #btn-logout {
+          padding: 0.5rem !important;
+        }
+
+        #session-profile .session-avatar {
+          width: 2rem !important;
+          height: 2rem !important;
+        }
+
+        .app-main {
+          padding-top: var(--space-4);
+        }
+      }
+
+      @media (min-width: 768px) and (max-width: 1080px) {
+        .site-nav .container {
+          align-items: center;
+        }
+
+        #nav-links {
+          order: 3;
+          flex-basis: 100%;
+          justify-content: center;
+        }
+
+        .site-actions {
+          max-width: calc(100% - 12rem);
+        }
+      }
+
+      #studio-toolbar {
+        border-radius: 1.15rem 1.4rem 1.25rem 1.35rem;
+      }
+
+      #studio-toolbar h2,
+      #studio-toolbar p {
+        min-width: 0;
+      }
+
+      #studio-toolbar button,
+      #gallery-results-box button,
+      #view-settings button {
+        white-space: nowrap;
+      }
+
+      #canvas-area-wrapper {
+        border-radius: 1.25rem 1.5rem 1.3rem 1.45rem;
+      }
+
+      #studio-ai-drawer {
+        max-height: min(580px, calc(100vh - 11rem));
+      }
+
+      #gallery-results-box select {
+        min-width: 12rem;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .bg-blob,
+        .fade-in-up,
+        #no-elements-banner,
+        #ai-drawer-loader,
+        #gallery-loader {
+          animation: none !important;
+        }
+        .glass-card,
+        .draggable-card {
+          transition: none;
+        }
+      }
+
+      @media (max-width: 767.98px) {
+        #main-container {
+          padding-inline: 1rem !important;
+        }
+
+        #studio-toolbar > div {
+          width: 100%;
+        }
+
+        #studio-toolbar > div:last-child {
+          display: grid !important;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        #studio-toolbar > div:last-child button {
+          justify-content: center;
+          min-width: 0;
+          padding-inline: 0.65rem !important;
+        }
+
+        #studio-board-desc {
+          max-width: 100% !important;
+          white-space: normal !important;
+          overflow: visible !important;
+          text-overflow: initial !important;
+        }
+
+        #view-studio > .flex {
+          min-height: 0 !important;
+        }
+
+        #canvas-area-wrapper {
+          height: min(64vh, 34rem) !important;
+          min-height: 26rem;
+          padding: 0.85rem !important;
+        }
+
+        #studio-ai-drawer {
+          height: auto !important;
+          max-height: 34rem;
+        }
+
+        #gallery-results-box .d-flex.align-items-center.gap-2 {
+          width: 100%;
+          align-items: stretch !important;
+          flex-direction: column;
+        }
+
+        #gallery-results-box select,
+        #gallery-results-box button {
+          width: 100%;
+        }
+
+        #view-settings .d-flex.justify-content-between {
+          align-items: flex-start !important;
+          gap: 0.85rem;
+        }
+
+        #view-settings .pt-3.border-t {
+          flex-direction: column;
+          align-items: stretch !important;
+        }
+      }
+
+      /* Custom scrollbars matching palette */
+      ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+      }
+      ::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #C8B6FF;
+        border-radius: 9999px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #9F86C0;
+      }
+
+      /* Printing obfuscation class to hide UI controls during PDF captures */
+      .printing-in-progress .btn-card-edit-action,
+      .printing-in-progress .lucide-move,
+      .printing-in-progress [data-lucide="move"],
+      .printing-in-progress .select-none {
+        display: none !important;
+      }
+
+      .crypto-shield-row {
+        display: flex;
+        align-items: center;
+        gap: 0.65rem;
+        width: 100%;
+        min-height: 42px;
+        padding: 0.55rem 0.75rem;
+        overflow: hidden;
+      }
+
+      .crypto-shield-checkbox {
+        flex: 0 0 16px;
+        width: 16px;
+        height: 16px;
+        margin: 0;
+        accent-color: #059669;
+      }
+
+      .crypto-shield-label {
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        min-width: 0;
+        margin: 0;
+        font-size: 10.5px;
+        line-height: 1.25;
+        overflow-wrap: anywhere;
+        cursor: pointer;
+      }
+
+      /* Premium high-fidelity Print overrides */
+      @media print {
+        body, html {
+          background: #ffffff !important;
+          color: #000000 !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          width: 100% !important;
+          height: auto !important;
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
+        }
+
+        /* Hide all outer scaffolding, side widgets, buttons & navigation views */
+        nav, 
+        #sync-status-banner, 
+        #view-home, 
+        #view-gallery, 
+        #view-settings,
+        .modal, 
+        .modal-backdrop,
+        #studio-ai-drawer,
+        #studio-board-title,
+        #studio-board-desc,
+        .bg-blob,
+        #btn-studio-back,
+        #studio-ai-recommender-btn,
+        #add-item-board-btn,
+        #save-studio-btn,
+        #export-pdf-studio-btn,
+        #studio-toolbar,
+        button,
+        header,
+        footer,
+        .btn-card-edit-action,
+        .select-none,
+        .lucide-move {
+          display: none !important;
+        }
+
+        #main-container {
+          padding: 0 !important;
+          margin: 0 !important;
+          max-width: 100% !important;
+          width: 100% !important;
+        }
+
+        #view-studio {
+          display: block !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          width: 100% !important;
+          height: auto !important;
+        }
+
+        /* Keep the Canvas view at a fixed aspect ratio matching the layout dimensions to prevent overlaps */
+        #canvas-area-wrapper {
+          position: relative !important;
+          width: 1000px !important;
+          height: 580px !important;
+          border: none !important;
+          border-radius: 0 !important;
+          box-shadow: none !important;
+          margin: 0 auto !important;
+          padding: 24px !important;
+          background: #f8f7ff !important;
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
+          overflow: hidden !important;
+        }
+
+        /* High contrast colors for print-accuracy */
+        .draggable-card {
+          border: 1px solid rgba(94, 84, 142, 0.25) !important;
+          box-shadow: none !important;
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
+        }
+
+        @page {
+          size: landscape;
+          margin: 0;
+        }
+      }
+    </style>
+    <script type="module" crossorigin src="/assets/index-kS68Lhhh.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-BM0OJ3nc.css">
+  </head>
+  <body class="font-sans text-[#5E548E] dark:text-[#FFF] relative min-h-screen">
+
+    <!-- Floating Background Pastel Blobs -->
+    <div class="bg-blob w-96 h-96 bg-lilac top-20 left-[-100px]"></div>
+    <div class="bg-blob w-80 h-80 bg-blush bottom-20 right-[-100px]" style="animation-delay: -5s;"></div>
+    <div class="bg-blob w-96 h-96 bg-lavender top-1/2 left-1/3" style="animation-delay: -10s; opacity: 0.3;"></div>
+
+    <!-- MAIN NAV (STOCKED GLASSMORPHISM) -->
+    <nav class="site-nav navbar sticky-top border-b border-[#C8B6FF]/30 bg-white/75 dark:bg-[#1E1B2E]/75 backdrop-blur-sm z-40">
+      <div class="container fluid d-flex justify-content-between align-items-center px-4">
+        
+        <!-- Logo Branding -->
+        <a href="#" class="site-brand d-flex align-items-center text-decoration-none text-plum dark:text-cream font-bold gap-2">
+          <div class="brand-mark h-9 w-9 rounded-2xl bg-gradient-to-tr from-[#9F86C0] to-[#C8B6FF] d-flex align-items-center justify-content-center text-white shadow-sm">
+            <i data-lucide="sparkles" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h1 class="fs-5 tracking-tight mb-0 font-extrabold text-[#5E548E] dark:text-cream">aura.</h1>
+          </div>
+        </a>
+
+        <button id="nav-menu-toggle" class="nav-menu-toggle font-mono text-xs uppercase font-bold" type="button" aria-expanded="false" aria-controls="nav-links">
+          <span class="d-flex align-items-center gap-2">
+            <i data-lucide="menu" class="w-4 h-4"></i>
+            Menu
+          </span>
+          <i data-lucide="chevron-down" class="w-4 h-4"></i>
+        </button>
+
+        <!-- Middle Quick Navigation (Drawn client-side dynamically) -->
+        <div class="items-center gap-1 font-mono text-xs uppercase" id="nav-links">
+          <button id="btn-tab-home" type="button" class="px-3 py-2 rounded-xl text-[#5E548E] dark:text-[#B8C0FF] hover:text-[#9F86C0] font-semibold transition-all">
+            <i data-lucide="home" class="inline w-3.5 h-3.5 mr-1 align-middle"></i>Dashboard
+          </button>
+          <button id="btn-tab-studio" type="button" class="px-3 py-2 rounded-xl text-[#5E548E] dark:text-[#B8C0FF] hover:text-[#9F86C0] font-semibold transition-all">
+            <i data-lucide="palette" class="inline w-3.5 h-3.5 mr-1 align-middle"></i>Canvas Studio
+          </button>
+          <button id="btn-tab-gallery" type="button" class="px-3 py-2 rounded-xl text-[#5E548E] dark:text-[#B8C0FF] hover:text-[#9F86C0] font-semibold transition-all">
+            <i data-lucide="compass" class="inline w-3.5 h-3.5 mr-1 align-middle"></i>AI Ideas
+          </button>
+          <button id="btn-tab-settings" type="button" class="px-3 py-2 rounded-xl text-[#5E548E] dark:text-[#B8C0FF] hover:text-[#9F86C0] font-semibold transition-all">
+            <i data-lucide="settings" class="inline w-3.5 h-3.5 mr-1 align-middle"></i>Settings
+          </button>
+        </div>
+
+        <!-- Right action elements -->
+        <div class="site-actions d-flex align-items-center gap-3">
+          
+          <!-- Offline / Online indicators -->
+          <div id="offline-pill" class="items-center gap-1 px-2.5 py-1 rounded-full text-[10px] uppercase font-mono bg-amber-100 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 hidden">
+            <i data-lucide="wifi-off" class="w-3 h-3"></i> <span>Offline</span>
+          </div>
+
+          <!-- Dark mode option toggle -->
+          <button id="btn-darkMode" type="button" class="p-2 rounded-xl border border-[#C8B6FF]/30 hover:bg-[#C8B6FF]/10 text-[#5E548E] dark:text-[#B8C0FF] transition-all cursor-pointer" aria-label="Toggle dark mode">
+            <i data-lucide="moon" class="w-4 h-4 dark-hidden"></i>
+            <i data-lucide="sun" class="w-4 h-4 light-hidden hidden"></i>
+          </button>
+
+          <!-- User session profile trigger / Auth buttons -->
+          <div id="session-profile" class="d-flex align-items-center gap-2">
+            <!-- Rendered dynamically -->
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <!-- CONTENT WRAPPER -->
+    <main class="app-main container relative z-10" id="main-container">
+      
+      <!-- AUTH FEEDBACK POPUP BANNER (IF SYNC MERGING FAILED) -->
+      <div id="sync-status-banner" class="status-banner mb-4 p-3 rounded-2xl border text-xs font-mono text-[#5E548E] d-none align-items-center gap-2 fade-in-up">
+        <i data-lucide="alert-circle" class="w-4 h-4 text-[#9F86C0]"></i>
+        <span id="sync-banner-text">Synchronisation active. Local cache secured.</span>
+      </div>
+
+      <!-- ==================================== -->
+      <!-- VIEW 1: HOME PAGE DASHBOARD -->
+      <!-- ==================================== -->
+      <section id="view-home" class="space-y-6 fade-in-up">
+        
+        <!-- Dreamy startup Welcome Banner -->
+        <div class="welcome-panel p-5 p-md-5 rounded-3xl border border-[#C8B6FF]/35 shadow-sm d-flex flex-col flex-md-row align-items-md-center justify-content-between gap-4">
+          <div class="max-w-xl">
+            <span class="welcome-eyebrow px-2.5 py-1 font-mono uppercase bg-[#C8B6FF] text-white rounded-full font-bold">Dream &amp; create</span>
+            <h2 class="fs-1 font-extrabold tracking-tight text-[#5E548E] mt-2 mb-1">Make your dreams visible.</h2>
+            <p class="welcome-lead text-[#5E548E]/80">
+              Pin quotes, goals, and images on a board that feels like your desk — drag cards around, save layouts, and pull in ideas when you need a nudge.
+            </p>
+          </div>
+          <div class="welcome-actions shrink-0 d-flex flex-wrap">
+            <button id="btn-new-board-trigger" type="button" class="px-4 py-2 bg-[#5E548E] hover:bg-[#9F86C0] text-white text-xs font-bold rounded-2xl transition-all shadow-sm flex items-center gap-1.5 cursor-pointer">
+              <i data-lucide="plus-circle" class="w-4 h-4"></i> Create New Canvas
+            </button>
+            <button id="btn-nav-gallery-promo" type="button" class="px-4 py-2 border border-[#9F86C0] hover:bg-[#9F86C0]/10 text-[#5E548E] text-xs font-bold rounded-2xl transition-all flex items-center gap-1.5 cursor-pointer">
+              <i data-lucide="sparkles" class="w-4 h-4 text-[#C8B6FF]"></i> Consult Gemini
+            </button>
+          </div>
+        </div>
+
+        <!-- Dashboard Widgets and Boards Grids -->
+        <div class="row g-4 mt-2 desk-layout">
+          
+          <!-- Column 1: Boards lists -->
+          <div class="col-lg-8 space-y-4 desk-boards-col">
+            <div class="dashboard-header d-flex justify-content-between align-items-center flex-wrap">
+              <h3 class="desk-section-title text-[#5E548E] d-flex align-items-center gap-2">
+                <i data-lucide="layers" class="w-4 h-4 text-[#9F86C0]"></i> Your vision boards
+              </h3>
+              <span id="board-count-indicator" class="dashboard-count font-mono">0 boards loaded</span>
+            </div>
+
+            <!-- Search Inputs -->
+            <div class="desk-search-strip glass-card p-3 d-flex align-items-center gap-2">
+              <div class="relative w-full">
+                <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-[#9F86C0]">
+                  <i data-lucide="search" class="w-4 h-4"></i>
+                </span>
+                <input type="text" id="board-search-input" placeholder="Search boards by title or category..." class="w-full pl-10 pr-4 py-2 border border-[#C8B6FF]/35 rounded-2xl bg-white/50 dark:bg-black/35 text-xs focus:outline-none focus:ring-2 focus:ring-[#9F86C0] text-[#5E548E] dark:text-cream dark:placeholder-[#9F86C0]/50 placeholder-[#5E548E]/40 transition-all font-sans" />
+              </div>
+              <button id="board-search-clear-btn" type="button" class="px-3 py-2 border border-[#C8B6FF]/30 hover:bg-[#C8B6FF]/10 text-[#5E548E] dark:text-cream text-xs font-bold rounded-xl transition-all hidden cursor-pointer shrink-0">
+                Clear
+              </button>
+            </div>
+
+            <!-- Dyn list boards -->
+            <div id="boards-grid-list" class="row g-3">
+              <!-- Rendered via vanilla JS -->
+            </div>
+          </div>
+
+          <!-- Column 2: Live Activity feeds (Notion-inspired) -->
+          <div class="col-lg-4 space-y-4 desk-sidebar-col">
+            
+            <!-- Real-time updates -->
+            <div class="desk-sidebar-card glass-card p-4 space-y-4 h-100">
+              <h4 class="font-bold fs-6 border-b border-[#C8B6FF]/30 pb-2 text-[#5E548E] flex items-center gap-1.5">
+                <i data-lucide="activity" class="w-4 h-4 text-emerald-500"></i> Collaboration Feed
+              </h4>
+              <p class="desk-sidebar-lead">
+                Occasional nudges from collaborators — sample updates while you work on a board.
+              </p>
+              
+              <ul id="collab-updates-list" class="list-unstyled space-y-3 text-xs">
+                <!-- Appended dynamic notes -->
+                <li class="feed-note p-2.5 rounded-xl bg-[#F8F7FF] dark:bg-[#1E1B2E] border border-[#C8B6FF]/20 font-mono">
+                  <div class="d-flex justify-content-between text-[10px] text-[#9F86C0]">
+                    <span>@collaborator</span>
+                    <span>Just now</span>
+                  </div>
+                  <p class="mb-0 mt-1 font-sans text-[#5E548E] dark:text-cream">"Visualized a modern studio setup on the goal canvas."</p>
+                </li>
+              </ul>
+            </div>
+
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ==================================== -->
+      <!-- VIEW 2: VISUAL CANVAS STUDIO -->
+      <!-- ==================================== -->
+      <section id="view-studio" class="space-y-4 fade-in-up d-none pb-5">
+        
+        <!-- Studio active board toolbar selection -->
+        <div id="studio-toolbar" class="glass-card p-3 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+          <div class="d-flex align-items-center gap-2">
+            <button id="btn-studio-back" type="button" class="p-2 rounded-xl border hover:bg-[#C8B6FF]/15 text-[#5E548E] cursor-pointer" aria-label="Back to dashboard">
+              <i data-lucide="arrow-left" class="w-4 h-4"></i>
+            </button>
+            <div>
+              <h2 id="studio-board-title" class="fs-5 font-bold text-[#5E548E] mb-0">No Board Selected</h2>
+              <p id="studio-board-desc" class="text-xs text-[#9F86C0] mb-0 max-w-sm truncate">Please open a canvas from the dashboard or create one.</p>
+            </div>
+          </div>
+
+          <!-- Actions deck -->
+          <div class="d-flex flex-wrap align-items-center gap-2">
+            <button id="studio-ai-recommender-btn" type="button" class="px-3 py-2 bg-gradient-to-r from-[#9F86C0] to-[#C8B6FF] hover:from-[#5E548E] hover:to-[#9F86C0] text-white text-xs font-semibold rounded-xl flex items-center gap-1 cursor-pointer">
+              <i data-lucide="sparkles" class="w-3.5 h-3.5"></i> Aura AI Suggestions
+            </button>
+            
+            <button id="add-item-board-btn" type="button" class="px-3 py-2 bg-[#5E548E] hover:bg-[#9F86C0] text-white text-xs font-bold rounded-xl flex items-center gap-1 cursor-pointer">
+              <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i> Add Element
+            </button>
+            
+            <button id="save-studio-btn" type="button" class="px-3 py-2 border border-[#9F86C0] hover:bg-[#9F86C0]/15 text-[#5E548E] text-xs font-bold rounded-xl flex items-center gap-1 cursor-pointer">
+              <i data-lucide="save" class="w-3.5 h-3.5"></i> Save Layout
+            </button>
+            <button id="export-pdf-studio-btn" type="button" class="px-3 py-2 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-700 text-xs font-bold rounded-xl flex items-center gap-1 cursor-pointer">
+              <i data-lucide="download" class="w-3.5 h-3.5"></i> Export PDF
+            </button>
+          </div>
+        </div>
+
+        <!-- Split structure: Canvas and dynamic insights panel -->
+        <div class="flex flex-col lg:flex-row gap-4 relative min-h-[500px]">
+          
+          <!-- Outer Workspace wrapper -->
+          <div class="flex-1 glass-card border border-[#C8B6FF]/30 rounded-3xl p-4 overflow-hidden relative max-h-[700px] h-[580px] canvas-workspace-bg" id="canvas-area-wrapper">
+            <div id="no-elements-banner" class="absolute inset-0 d-flex flex-col items-center justify-center text-center p-6 bg-white/55 dark:bg-black/25 border border-dashed border-[#C8B6FF]/30 z-10 pointer-events-none">
+              <i data-lucide="palette" class="w-10 h-10 text-[#C8B6FF] mb-3 opacity-85"></i>
+              <h4 class="font-bold text-sm text-[#5E548E]">Canvas is empty</h4>
+              <p class="text-xs text-[#9F86C0] mt-1 max-w-xs leading-relaxed">Add a note, quote, or image with <strong>Add Element</strong>, then drag cards anywhere on the grid.</p>
+            </div>
+
+            <!-- Draggable elements container -->
+            <div class="absolute inset-0 overflow-hidden" id="canvas-draggable-stage">
+              <!-- Element absolute position cards rendered here -->
+            </div>
+          </div>
+
+          <!-- SIDE INSIGHTS: AURA BOARD SUGGESTION FEED DRAWER -->
+          <div id="studio-ai-drawer" class="w-full lg:w-96 glass-card p-4 shrink-0 d-none flex flex-col justify-between h-[580px] overflow-y-auto border border-[#C8B6FF]/40">
+            <div class="space-y-4">
+              <div class="d-flex justify-content-between align-items-center border-b border-[#C8B6FF]/30 pb-3">
+                <div class="d-flex align-items-center gap-2">
+                  <div class="p-1.5 rounded-xl bg-[#C8B6FF] text-white">
+                    <i data-lucide="sparkles" class="w-4 h-4"></i>
+                  </div>
+                  <div>
+                    <h4 class="font-bold text-sm mb-0 text-[#5E548E]">AI Suggestions</h4>
+                    <p class="text-[9px] font-mono mb-0 text-[#9F86C0]">Consult current elements context</p>
+                  </div>
+                </div>
+                <button id="close-ai-drawer-btn" type="button" class="p-1 px-2 border hover:bg-[#FFD6E7]/30 text-[#5E548E] text-xs font-mono font-bold rounded-xl cursor-pointer" aria-label="Close AI suggestions">✕</button>
+              </div>
+
+              <!-- Recommendation state container -->
+              <div id="ai-drawer-loader" class="text-center py-5 d-none">
+                <i data-lucide="refresh-cw" class="w-8 h-8 text-[#9F86C0] animate-spin mb-2"></i>
+                <p class="text-xs text-[#5E548E] font-medium">Formulating creative grid alignments...</p>
+              </div>
+
+              <div id="ai-drawer-content" class="space-y-4">
+                <!-- Rendered results -->
+                <div class="p-3 bg-[#C8B6FF]/10 rounded-2xl border border-[#C8B6FF]/35">
+                  <span class="text-[9px] font-mono uppercase font-bold text-[#5E548E] block">AI Theme Analysis</span>
+                  <p class="text-xs text-[#5E548E] mt-1 mb-0 leading-relaxed" id="ai-analysis-feedback">
+                    Provide a few items to your board first. Click "Aura AI Suggestions" to request custom color presets and element additions matching your board category!
+                  </p>
+                </div>
+                
+                <div class="space-y-2">
+                  <span class="text-[9px] font-mono uppercase font-bold text-[#5E548E] block">Palette Vibe Check</span>
+                  <div class="d-flex gap-1.5" id="ai-color-palette-feedback">
+                    <!-- Standard dots -->
+                    <div class="h-5 flex-1 rounded-lg" style="background-color: #C8B6FF"></div>
+                    <div class="h-5 flex-1 rounded-lg" style="background-color: #B8C0FF"></div>
+                    <div class="h-5 flex-1 rounded-lg" style="background-color: #F8F7FF; border: 1px solid #C8B6FF/20"></div>
+                    <div class="h-5 flex-1 rounded-lg" style="background-color: #FFD6E7"></div>
+                  </div>
+                </div>
+
+                <div class="space-y-3 mt-3">
+                  <span class="text-[9px] font-mono uppercase font-bold text-[#5E548E] block">Recommended Assets</span>
+                  <div id="ai-recommended-assets-list" class="space-y-3">
+                    <!-- Cards with "+ Add to Canvas" -->
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+      </section>
+
+      <!-- ==================================== -->
+      <!-- VIEW 3: AI INSPIRATION FEED GALLERY -->
+      <!-- ==================================== -->
+      <section id="view-gallery" class="space-y-6 fade-in-up d-none pb-5">
+        <div>
+          <h2 class="fs-3 font-extrabold text-[#5E548E] d-flex align-items-center gap-1.5 mb-1">
+            <i data-lucide="compass" class="w-7 h-7 text-[#9F86C0]"></i> Gemini AI Idea Gallery
+          </h2>
+          <p class="text-sm text-[#5E548E]/80">
+            Synthesize bespoke digital items (quotes, checklists, and Unsplash key definitions) on specific aesthetic design goals below.
+          </p>
+        </div>
+
+        <div class="row g-4">
+          
+          <!-- Column 1: Config prompts -->
+          <div class="col-lg-4">
+            <div class="glass-card p-4 space-y-4 h-fit">
+              <h3 class="fs-6 font-bold text-[#5E548E] border-b border-[#C8B6FF]/30 pb-2 flex items-center gap-1.5">
+                <i data-lucide="sparkles" class="w-4 h-4 text-amber-500"></i> Synthesize Theme Blueprint
+              </h3>
+
+              <div class="space-y-3 text-xs">
+                <div>
+                  <label for="input-gallery-theme" class="form-label font-bold text-[#5E548E]/80 uppercase font-mono tracking-wider">Aspiration Title</label>
+                  <input type="text" id="input-gallery-theme" class="form-control rounded-xl border-[#C8B6FF]/40 bg-white/50 text-xs px-3 py-2 text-[#5E548E] font-medium" placeholder="e.g. Vintage Riviera Sailing Club" />
+                </div>
+
+                <button id="btn-gallery-generate" type="button" class="w-full py-2 bg-[#5E548E] hover:bg-[#9F86C0] text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer">
+                  <i data-lucide="sparkles" class="w-4 h-4"></i> Synthesize Vision Elements
+                </button>
+
+                <!-- Feedback -->
+                <div id="gallery-error" class="state-panel p-3 rounded-xl leading-normal text-[11px] d-none" role="alert"></div>
+
+                <!-- Presets trigger -->
+                <div class="pt-3 border-t border-[#C8B6FF]/30">
+                  <span class="text-[10px] font-mono uppercase text-[#9F86C0] block mb-2">Or consult selected presets:</span>
+                  <div class="d-flex flex-wrap gap-1.5" id="gallery-presets-stack">
+                    <!-- Standard presets buttons -->
+                    <button type="button" class="btn btn-sm btn-outline-secondary text-[11px] rounded-lg tracking-tight font-sans text-[#5E548E] hover:bg-[#C8B6FF]/20 py-1 border-[#C8B6FF]/30 hover:border-[#9F86C0] click-preset">Sustainable Urban Gardening</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary text-[11px] rounded-lg tracking-tight font-sans text-[#5E548E] hover:bg-[#C8B6FF]/20 py-1 border-[#C8B6FF]/30 hover:border-[#9F86C0] click-preset">Minimalist Swiss Design Studio</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary text-[11px] rounded-lg tracking-tight font-sans text-[#5E548E] hover:bg-[#C8B6FF]/20 py-1 border-[#C8B6FF]/30 hover:border-[#9F86C0] click-preset">Ironman Triathlete Endurance</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary text-[11px] rounded-lg tracking-tight font-sans text-[#5E548E] hover:bg-[#C8B6FF]/20 py-1 border-[#C8B6FF]/30 hover:border-[#9F86C0] click-preset">Serene Cozy Reading Room</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Column 2: Results grid synthesis -->
+          <div class="col-lg-8">
+            
+            <!-- Loader -->
+            <div id="gallery-loader" class="state-panel glass-card p-5 text-center d-none">
+              <i data-lucide="refresh-cw" class="w-10 h-10 text-[#C8B6FF] animate-spin mb-3 mx-auto"></i>
+              <h4 class="font-bold text-[#5E548E] fs-6">Sketching your mood board…</h4>
+              <p class="text-xs text-[#9F86C0] mt-1 max-w-sm mx-auto leading-relaxed">Pulling colors, quotes, and image prompts that fit your theme. This usually takes a few seconds.</p>
+            </div>
+
+            <!-- Empty info -->
+            <div id="gallery-empty" class="state-panel glass-card p-5 text-center flex flex-col items-center justify-center min-vh-50 border border-dashed border-[#C8B6FF]/35">
+              <div class="h-12 w-12 rounded-2xl bg-[#C8B6FF]/10 text-[#C8B6FF] d-flex align-items-center justify-center mb-3">
+                <i data-lucide="compass" class="w-6 h-6"></i>
+              </div>
+              <h4 class="font-bold text-[#5E548E] fs-6">Start with a theme</h4>
+              <p class="text-xs text-[#9F86C0] max-w-xs mt-1 leading-relaxed">Pick a preset on the left or type something you are aiming for — we will suggest cards you can drop onto a board.</p>
+            </div>
+
+            <!-- Suggestion Results Output -->
+            <div id="gallery-results-box" class="space-y-4 d-none">
+              
+              <div class="glass-card p-4 space-y-3">
+                <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-3">
+                  <div>
+                    <span class="text-[9px] font-mono uppercase bg-[#C8B6FF]/30 text-[#5E548E] px-2 py-0.5 rounded-full font-bold">Recommended Concept Layout</span>
+                    <h3 id="gallery-result-title" class="fs-4 font-extrabold text-[#5E548E] mt-1 mb-0">Theme title</h3>
+                  </div>
+                  
+                  <!-- Select board target -->
+                  <div class="d-flex align-items-center gap-2">
+                    <select id="gallery-push-board-select" class="form-select text-xs rounded-xl border-[#C8B6FF]/40 bg-white/50 py-1.5 text-[#5E548E]">
+                      <!-- Options -->
+                    </select>
+                    <button id="btn-gallery-push-all" type="button" class="px-3 py-2 bg-[#5E548E] text-white rounded-xl text-xs font-bold shrink-0 cursor-pointer hover:bg-[#9F86C0] transition-colors">Push elements</button>
+                  </div>
+                </div>
+
+                <p id="gallery-result-desc" class="text-xs text-[#5E548E]/80 leading-relaxed mb-0">Theme description...</p>
+                
+                <!-- Colors -->
+                <div class="d-flex align-items-center gap-2">
+                  <span class="text-[10px] font-mono text-[#9F86C0]">Sub-Palette:</span>
+                  <div id="gallery-badge-palette" class="d-flex align-items-center gap-1.5 flex-wrap">
+                    <!-- Palettes chips -->
+                  </div>
+                </div>
+              </div>
+
+              <!-- Recommendation items grid -->
+              <div class="row g-3" id="gallery-items-container">
+                <!-- Dyn assets cards -->
+              </div>
+
+            </div>
+
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ==================================== -->
+      <!-- VIEW 5: USER SETTINGS -->
+      <!-- ==================================== -->
+      <section id="view-user-settings" class="space-y-6 fade-in-up d-none pb-5">
+        <div>
+          <h2 class="fs-3 font-extrabold text-[#5E548E] d-flex align-items-center gap-1.5 mb-1">
+            <i data-lucide="settings" class="w-7 h-7 text-[#9F86C0]"></i> User Settings
+          </h2>
+          <p class="text-sm text-[#5E548E]/80">Review your profile, preferences, AI privacy notes, and current session controls.</p>
+        </div>
+
+        <div class="row g-4">
+          
+          <!-- Section A: Account Settings -->
+          <div class="col-md-6">
+            <div class="glass-card p-4 space-y-4">
+              <h3 class="fs-6 font-bold text-[#5E548E] border-b border-[#C8B6FF]/30 pb-2 d-flex align-items-center gap-1.5">
+                <i data-lucide="user" class="w-4.5 h-4.5 text-[#9F86C0]"></i> Profile & Preferences
+              </h3>
+
+              <div id="settings-loading-state" class="state-empty py-6 text-center text-[#9F86C0] bg-white/40 dark:bg-black/10 rounded-3xl border border-dashed border-[#C8B6FF]/35 d-none">
+                <p class="text-xs font-mono mb-0">Loading account settings...</p>
+              </div>
+
+              <div id="settings-error-state" class="state-empty py-6 text-center text-rose-500 bg-rose-50/50 dark:bg-black/10 rounded-3xl border border-dashed border-rose-200 d-none">
+                <p class="text-xs font-mono mb-0">Settings could not be loaded. Sign in again if the session expired.</p>
+              </div>
+
+              <div id="settings-empty-state" class="state-empty py-6 text-center text-[#9F86C0] bg-white/40 dark:bg-black/10 rounded-3xl border border-dashed border-[#C8B6FF]/35 d-none">
+                <p class="text-xs font-mono mb-0">Sign in to view your user settings.</p>
+              </div>
+
+              <div id="settings-content" class="space-y-3 font-mono text-xs d-none">
+                
+                <!-- Profile summary -->
+                <div class="p-3 rounded-2xl bg-white/50 dark:bg-black/10 border border-[#C8B6FF]/25">
+                  <span class="font-sans font-bold text-[#5E548E] block">Profile Summary</span>
+                  <span id="settings-profile-name" class="text-[11px] text-[#9F86C0] block font-sans mt-1">-</span>
+                  <span id="settings-profile-email" class="text-[10px] text-[#9F86C0] block font-mono break-all">-</span>
+                </div>
+                
+                <!-- Notifications -->
+                <div class="d-flex justify-content-between align-items-center p-3 rounded-2xl bg-white/50 dark:bg-black/10 border border-[#C8B6FF]/25">
+                  <div>
+                    <span class="font-sans font-bold text-[#5E548E] block">Push Alert System</span>
+                    <span class="text-[10px] text-[#9F86C0] block font-sans">Simulate collaborative activity alerts.</span>
+                  </div>
+                  <div class="form-check form-switch fs-5">
+                    <input class="form-check-input" type="checkbox" id="user-settings-toggle-notif" checked aria-label="Toggle collaborative alerts" />
+                  </div>
+                </div>
+
+                <!-- Theme preference -->
+                <div class="d-flex justify-content-between align-items-center p-3 rounded-2xl bg-white/50 dark:bg-black/10 border border-[#C8B6FF]/25">
+                  <div>
+                    <span class="font-sans font-bold text-[#5E548E] block">Theme Preference</span>
+                    <span class="text-[10px] text-[#9F86C0] block font-sans">Use the existing dark-mode preference.</span>
+                  </div>
+                  <div class="form-check form-switch fs-5">
+                    <input class="form-check-input" type="checkbox" id="user-settings-toggle-theme" aria-label="Toggle dark theme preference" />
+                  </div>
+                </div>
+
+                <!-- Contrast accessibility -->
+                <div class="d-flex justify-content-between align-items-center p-3 rounded-2xl bg-white/50 dark:bg-black/10 border border-[#C8B6FF]/25">
+                  <div>
+                    <span class="font-sans font-bold text-[#5E548E] block">Aesthetic High-Density Grid</span>
+                    <span class="text-[10px] text-[#9F86C0] block font-sans">Toggle contrast parameters.</span>
+                  </div>
+                  <div class="form-check form-switch fs-5">
+                    <input class="form-check-input" type="checkbox" id="user-settings-toggle-contrast" aria-label="Toggle high contrast view" />
+                  </div>
+                </div>
+
+                <!-- AI status and privacy -->
+                <div class="p-3 rounded-2xl bg-white/50 dark:bg-black/10 border border-[#C8B6FF]/25">
+                  <span class="font-sans font-bold text-[#5E548E] block">AI/API Status</span>
+                  <span id="settings-ai-status" class="text-[10px] text-[#9F86C0] block font-sans mt-1">Gemini suggestions use server-side configuration when available, with local fallback ideas otherwise.</span>
+                  <span class="text-[10px] text-[#9F86C0] block font-sans mt-2">Privacy note: AI suggestions may use your board text when Gemini API is enabled.</span>
+                </div>
+
+                <!-- Session -->
+                <div class="pt-3 border-t border-[#C8B6FF]/30 d-flex justify-content-between align-items-center">
+                  <div>
+                    <span class="font-sans font-bold text-xs text-rose-500 block">Account Session</span>
+                    <span class="text-[9px] text-[#9F86C0] font-sans">Sign out and clear the active workspace state.</span>
+                  </div>
+                  <button id="btn-user-settings-logout" type="button" class="px-3 py-1.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 font-bold text-[11px] border border-red-200 cursor-pointer">Log Out</button>
+                </div>
+
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+      </section>
+
+      <!-- ==================================== -->
+      <!-- VIEW 4: SYSTEM SETTINGS + CRYTOGRAPHY LAB -->
+      <!-- ==================================== -->
+      <section id="view-settings" class="space-y-6 fade-in-up d-none pb-5">
+        <div>
+          <h2 class="fs-3 font-extrabold text-[#5E548E] d-flex align-items-center gap-1.5 mb-1">
+            <i data-lucide="settings" class="w-7 h-7 text-[#9F86C0]"></i> Aura Workstation Settings
+          </h2>
+          <p class="text-sm text-[#5E548E]/80">Configure local application components, accessibility toggles, and verify our client-side cryptographic shield playground.</p>
+        </div>
+
+        <div class="row g-4">
+          
+          <!-- Section A: Preference Toggles -->
+          <div class="col-md-6">
+            <div class="glass-card p-4 space-y-4">
+              <h3 class="fs-6 font-bold text-[#5E548E] border-b border-[#C8B6FF]/30 pb-2 d-flex align-items-center gap-1.5">
+                <i data-lucide="user" class="w-4.5 h-4.5 text-[#9F86C0]"></i> Core Layout preferences
+              </h3>
+
+              <div class="space-y-3 font-mono text-xs">
+                
+                <!-- Notifications -->
+                <div class="d-flex justify-content-between align-items-center p-3 rounded-2xl bg-white/50 dark:bg-black/10 border border-[#C8B6FF]/25">
+                  <div>
+                    <span class="font-sans font-bold text-[#5E548E] block">Push Alert System</span>
+                    <span class="text-[10px] text-[#9F86C0] block font-sans">Simulate collaborative activity alerts.</span>
+                  </div>
+                  <div class="form-check form-switch fs-5">
+                    <input class="form-check-input" type="checkbox" id="settings-toggle-notif" checked />
+                  </div>
+                </div>
+
+                <!-- Contrast accessibility -->
+                <div class="d-flex justify-content-between align-items-center p-3 rounded-2xl bg-white/50 dark:bg-black/10 border border-[#C8B6FF]/25">
+                  <div>
+                    <span class="font-sans font-bold text-[#5E548E] block">Aesthetic High-Density Grid</span>
+                    <span class="text-[10px] text-[#9F86C0] block font-sans">Toggle contrast parameters.</span>
+                  </div>
+                  <div class="form-check form-switch fs-5">
+                    <input class="form-check-input" type="checkbox" id="settings-toggle-contrast" />
+                  </div>
+                </div>
+
+                <!-- Caches Wipe -->
+                <div class="pt-3 border-t border-[#C8B6FF]/30 d-flex justify-content-between align-items-center">
+                  <div>
+                    <span class="font-sans font-bold text-xs text-rose-500 block">Purge Database Caches</span>
+                    <span class="text-[9px] text-[#9F86C0] font-sans">Wipe client queues and sign-out cleanly.</span>
+                  </div>
+                  <button id="btn-purge-caches" type="button" class="px-3 py-1.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 font-bold text-[11px] border border-red-200 cursor-pointer">Wipe Cache Registry</button>
+                </div>
+
+              </div>
+            </div>
+          </div>
+
+          <!-- Section B: Cryptographic Lab -->
+          <div class="col-md-6">
+            <div class="glass-card p-4 space-y-4">
+              <h3 class="fs-6 font-bold text-[#5E548E] border-b border-[#C8B6FF]/30 pb-2 d-flex align-items-center gap-1.5">
+                <i data-lucide="lock" class="w-4.5 h-4.5 text-emerald-500"></i> Cryptographic Obfuscation Lab
+              </h3>
+              <p class="text-xs text-[#5E548E]/80 leading-relaxed font-sans mt-1">
+                Aura enforces zero-exposure design. Secure memo items undergo multi-round cryptographic shielding locally inside the client prior to cloud database syncing. Test the encryption routines below:
+              </p>
+
+              <div class="space-y-3 font-mono text-[10.5px]">
+                <div>
+                  <label class="text-[#9F86C0] block uppercase mb-1">Secret memo plaintext input</label>
+                  <textarea id="crypto-plaintext" class="form-control text-xs rounded-xl border-[#C8B6FF]/40 bg-white/50 text-[#5E548E]" rows="2">Confidential Aspirations: Build an organic studio in Lake Como. 🌿</textarea>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center">
+                  <span id="shield-key-indicator" class="text-[9px] text-[#9F86C0]">Key: Standard salt</span>
+                  <button id="btn-run-crypto-cycles" type="button" class="px-3 py-1.5 bg-[#5E548E] hover:bg-[#9F86C0] text-white font-sans text-xs rounded-xl cursor-pointer">Simulate Shield Cycles</button>
+                </div>
+
+                <div id="crypto-output-group" class="space-y-2 pt-2 d-none fade-in-up">
+                  <div>
+                    <label class="text-[#9F86C0] block uppercase mb-1">Encrypted representation (Transmitted Payload):</label>
+                    <p id="crypto-ciphertext" class="p-2 border border-emerald-200 rounded-xl bg-emerald-50/20 text-emerald-600 font-bold tracking-wider break-all text-[10px] mb-0"></p>
+                  </div>
+                  <div>
+                    <label class="text-[#9F86C0] block uppercase mb-1">Decrypted on target device:</label>
+                    <p id="crypto-decrypted" class="p-2 border border-[#C8B6FF]/30 rounded-xl bg-[#F8F7FF] text-[#5E548E] font-medium text-xs mb-0"></p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+      </section>
+
+    </main>
+
+    <!-- BEAUTIFUL FOOTER -->
+    <footer class="border-t border-[#C8B6FF]/30 py-5 mt-5 bg-white/30 backdrop-blur-md">
+      <div class="container text-center space-y-3">
+        <div class="d-flex justify-content-center align-items-center gap-2 text-[#5E548E]">
+          <i data-lucide="sparkles" class="w-4 h-4 text-[#9F86C0]"></i>
+          <span class="font-extrabold tracking-tight">aura.board</span>
+        </div>
+        <p class="text-xs text-[#9F86C0] mb-0 max-w-md mx-auto leading-relaxed">
+          The ultimate physical-vector thinking board built purely with Bootstrap 5, Tailwind static configurations, and local JavaScript sandboxing. No SPA overhead, and premium dreamy colors.
+        </p>
+        <p class="text-[10px] text-[#9F86C0]/60 font-mono mb-0">&copy; 2026 Aura Inc. All dreams legally secure.</p>
+      </div>
+    </footer>
+
+    <!-- ==================================== -->
+    <!-- MODALS & PORTALS (REUSABLE LIGHTWEIGHT BOOTSTRAP STRUCTURES) -->
+    <!-- ==================================== -->
+    
+    <!-- 1. AUTH SCREEN MODAL OVERLAY (FullScreen Backdrop if not logged in) -->
+    <div class="modal fade" id="authScreenModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered text-[#5E548E]">
+        <div class="modal-content glass-card p-4 border border-[#C8B6FF]/40 rounded-3xl">
+          <div class="modal-header border-0 pb-0 d-flex flex-column align-items-center text-center">
+            <div class="h-12 w-12 rounded-2xl bg-gradient-to-tr from-[#9F86C0] to-[#C8B6FF] d-flex align-items-center justify-content-center text-white mb-3 shadow">
+              <i data-lucide="sparkles" class="w-6 h-6"></i>
+            </div>
+            <h3 class="modal-title fs-4 font-bold" id="authModalTitle">Welcome to aura.</h3>
+            <p class="text-xs text-[#9F86C0] mt-1">Immersive multi-mode thinking tools. Select access model:</p>
+          </div>
+          <div class="modal-body py-3">
+            
+            <!-- Forms toggles -->
+            <div id="auth-alert" class="p-3 bg-red-50 text-red-650 rounded-xl text-xs mb-3 d-none"></div>
+
+            <form id="auth-form" class="space-y-3">
+              <div id="group-auth-name">
+                <label for="auth-input-name" class="form-label text-xs font-bold font-mono text-[#5E548E]/80">Full Name</label>
+                <input type="text" id="auth-input-name" class="form-control rounded-xl border-[#C8B6FF]/35 bg-[#F8F7FF] text-xs py-2 text-[#5E548E] font-medium" placeholder="E.g. Pelin Kaya" />
+              </div>
+
+              <div>
+                <label for="auth-input-email" class="form-label text-xs font-bold font-mono text-[#5E548E]/80">Email address</label>
+                <input type="email" id="auth-input-email" class="form-control rounded-xl border-[#C8B6FF]/35 bg-[#F8F7FF] text-xs py-2 text-[#5E548E]" placeholder="pelin@studio.com" required />
+              </div>
+
+              <div>
+                <label for="auth-input-password" class="form-label text-xs font-bold font-mono text-[#5E548E]/80">Aura Passkey</label>
+                <input type="password" id="auth-input-password" class="form-control rounded-xl border-[#C8B6FF]/35 bg-[#F8F7FF] text-xs py-2 text-[#5E548E]" placeholder="••••••••" required />
+              </div>
+
+              <button type="submit" id="btn-auth-submit" class="w-full py-2 bg-[#5E548E] text-white hover:bg-[#9F86C0] font-sans font-bold text-xs rounded-xl shadow mt-2 cursor-pointer transition-colors">Assemble Workspace</button>
+            </form>
+
+            <div class="text-center mt-3 pt-2 border-t border-[#C8B6FF]/30">
+              <button id="btn-toggle-auth-mode" type="button" class="btn btn-link text-xs text-[#9F86C0] hover:text-[#5E548E] text-decoration-none">
+                Already curating? <strong class="text-[#5E548E]">Sign In</strong>
+              </button>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. CREATE / EDIT BOARD ITEM MODAL -->
+    <div class="modal fade text-[#5E548E]" id="editItemModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content glass-card p-4 border border-[#C8B6FF]/40 rounded-3xl">
+          <div class="modal-header border-b border-[#C8B6FF]/30 pb-3">
+            <h4 class="modal-title fs-5 font-bold flex items-center gap-1.5" id="itemModalHeaderTitle">
+              <i data-lucide="edit-3" class="w-5 h-5 text-[#9F86C0]"></i> Customise Visual Card
+            </h4>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body py-3 space-y-3 font-sans text-xs">
+            
+            <form id="item-form" class="space-y-3">
+              <input type="hidden" id="item-field-id" />
+              
+              <div>
+                <label class="form-label font-bold text-[#5E548E]/80 font-mono text-[10px] uppercase">Card Title</label>
+                <input type="text" id="item-field-title" class="form-control rounded-xl border-[#C8B6FF]/45 py-2 text-xs font-medium text-[#5E548E]" placeholder="Daily Intention / Keyword focus" required />
+              </div>
+
+              <div>
+                <label class="form-label font-bold text-[#5E548E]/80 font-mono text-[10px] uppercase">Element Type</label>
+                <select id="item-field-type" class="form-select rounded-xl border-[#C8B6FF]/45 text-xs text-[#5E548E] font-medium">
+                  <option value="note">📝 Action Note Checklist</option>
+                  <option value="quote">💬 Inspirational Quote</option>
+                  <option value="image">🖼️ Unsplash Vector Image Query</option>
+                  <option value="text">📄 Core Memo Paragraph</option>
+                </select>
+              </div>
+
+              <!-- Image Upload Section (visible only when type is image) -->
+              <div id="item-image-upload-wrapper" class="d-none p-3 rounded-2xl bg-[#F8F7FF] dark:bg-[#1E1B2E] border border-[#C8B6FF]/20 space-y-2 mt-2">
+                <label class="form-label font-bold text-[#5E548E]/80 font-mono text-[10px] uppercase mb-0">Upload Local Image File</label>
+                <input type="file" id="item-field-image-file" class="form-control rounded-xl border-[#C8B6FF]/35 bg-white/50 text-xs py-1.5 text-[#5E548E]" accept="image/*" />
+                
+                <!-- Uploading Status & Preview -->
+                <div id="item-image-upload-status" class="text-[10px] text-[#9F86C0] font-mono d-none align-items-center gap-1.5 mt-1">
+                  <i data-lucide="refresh-cw" class="w-3.5 h-3.5 animate-spin text-[#9F86C0]"></i>
+                  <span id="item-image-upload-status-text">Uploading image to server...</span>
+                </div>
+                
+                <div id="item-image-preview-container" class="relative rounded-lg overflow-hidden d-none max-h-24 bg-black/5 flex items-center justify-center mt-1">
+                  <img id="item-image-preview" src="" alt="Selected item image preview" class="max-h-24 object-contain" />
+                  <button type="button" id="btn-remove-uploaded-image" class="absolute top-1 right-1 p-1 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg text-[9px] font-bold border border-red-200 cursor-pointer">Remove</button>
+                </div>
+              </div>
+
+              <div class="mt-2">
+                <label class="form-label font-bold text-[#5E548E]/80 font-mono text-[10px] uppercase" id="item-label-content">Card Content / Image Keyword</label>
+                <textarea id="item-field-content" class="form-control rounded-xl text-xs border-[#C8B6FF]/45 text-[#5E548E]" rows="3" placeholder="Write text details or type image keyword e.g. ocean beach morning sunset" required></textarea>
+              </div>
+
+              <!-- Extra caption/author if image/quote -->
+              <div id="item-extra-caption-wrapper">
+                <label class="form-label font-bold text-[#5E548E]/80 font-mono text-[10px] uppercase" id="item-label-caption">Quote Author / Image Caption</label>
+                <input type="text" id="item-field-caption" class="form-control rounded-xl border-[#C8B6FF]/45 py-2 text-xs" placeholder="E.g. Steve Jobs / Sunset peak view" />
+              </div>
+
+              <!-- BG Preset Color -->
+              <div>
+                <span class="block text-[10px] font-mono uppercase font-bold text-[#5E548E]/80 mb-2">Background Tint Preset:</span>
+                <div class="d-flex gap-2">
+                  <label class="flex-1 text-center py-2 border rounded-xl cursor-pointer hover:bg-white text-[11px] select-none text-[#5E548E]">
+                    <input type="radio" class="d-none" name="color-preset" value="bg-white border-[#C8B6FF]/30 text-[#5E548E]" checked />
+                    🤍 Default
+                  </label>
+                  <label class="flex-1 text-center py-2 border border-[#C8B6FF]/40 rounded-xl bg-purple-50 text-purple-700 cursor-pointer text-[11px] select-none">
+                    <input type="radio" class="d-none" name="color-preset" value="bg-purple-50 border-purple-200 text-purple-800" />
+                    💜 Lilac
+                  </label>
+                  <label class="flex-1 text-center py-2 border border-[#FFD6E7]/50 rounded-xl bg-pink-50 text-pink-700 cursor-pointer text-[11px] select-none">
+                    <input type="radio" class="d-none" name="color-preset" value="bg-pink-50 border-pink-200 text-pink-800" />
+                    💖 Blush
+                  </label>
+                  <label class="flex-1 text-center py-2 border border-[#B8C0FF]/50 rounded-xl bg-blue-50 text-blue-700 cursor-pointer text-[11px] select-none">
+                    <input type="radio" class="d-none" name="color-preset" value="bg-blue-50 border-blue-200 text-blue-800" />
+                    💙 Blue
+                  </label>
+                </div>
+              </div>
+
+              <!-- Cryptographic Obfuscation Checkbox -->
+              <div class="crypto-shield-row bg-emerald-50/40 border border-emerald-100 rounded-xl">
+                <input class="crypto-shield-checkbox" type="checkbox" id="item-field-secure" />
+                <label class="crypto-shield-label text-emerald-800 font-bold" for="item-field-secure">
+                  🔒 Apply Cryptographic Shield Prior to Syncing
+                </label>
+              </div>
+
+              <!-- Layering arrangement selection -->
+              <div>
+                <label class="form-label font-bold text-[#5E548E]/80 font-mono text-[10px] uppercase">Layer Arrangement</label>
+                <select id="item-field-z-index" class="form-select rounded-xl border-[#C8B6FF]/45 text-xs text-[#5E548E] font-medium">
+                  <option value="keep">Keep Current Layer</option>
+                  <option value="front">⏫ Bring to Front</option>
+                  <option value="back">⏬ Send to Back</option>
+                </select>
+              </div>
+
+              <!-- Actions -->
+              <div class="pt-3 border-t border-[#C8B6FF]/30 d-flex justify-content-between">
+                <button type="button" id="btn-delete-card" class="px-3 py-2 bg-red-50 hover:bg-red-100 border border-red-200 text-red-600 rounded-xl font-bold cursor-pointer transition-colors d-none">
+                  Delete Card
+                </button>
+                <div class="d-flex gap-2 ms-auto">
+                  <button type="button" class="px-3 py-2 border rounded-xl cursor-pointer" data-bs-dismiss="modal">Cancel</button>
+                  <button type="submit" class="px-3 py-2 bg-[#5E548E] text-white rounded-xl font-bold hover:bg-[#9F86C0] cursor-pointer transition-colors">Apply Changes</button>
+                </div>
+              </div>
+            </form>
+
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. CREATE NEW BOARD HEADER MODAL -->
+    <div class="modal fade text-[#5E548E]" id="editBoardModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content glass-card p-4 border border-[#C8B6FF]/40 rounded-3xl">
+          <div class="modal-header border-b border-[#C8B6FF]/30 pb-3">
+            <h4 class="modal-title fs-5 font-bold" id="boardModalHeaderTitle">Curate Workspace Design</h4>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body py-3 space-y-3 font-sans text-xs">
+            
+            <form id="board-form" class="space-y-3">
+              <input type="hidden" id="board-field-id" />
+              
+              <div>
+                <label class="form-label font-bold text-[#5E548E]/80">Canvas Title</label>
+                <input type="text" id="board-field-title" class="form-control rounded-xl border-[#C8B6FF]/35 py-2 text-xs font-semibold" placeholder="e.g. My Creative Autumn Loft Studio 🪐" required />
+              </div>
+
+              <div>
+                <label class="form-label font-bold text-[#5E548E]/80">Aspirations/Theme Description</label>
+                <textarea id="board-field-desc" class="form-control rounded-xl text-xs border-[#C8B6FF]/35" rows="2" placeholder="Write overall themes or category descriptions we can feed into localized AI advice models..." required></textarea>
+              </div>
+
+              <div>
+                <label class="form-label font-bold text-[#5E548E]/80">Aesthetic Category</label>
+                <select id="board-field-category" class="form-select rounded-xl border-[#C8B6FF]/35 text-xs text-[#5E548E] font-medium">
+                  <option value="Personal Growth">🌱 Personal Growth & Intentions</option>
+                  <option value="Creative Design">🎨 Creative Space Alignment</option>
+                  <option value="Physical Endurance">🏃 Physical Grind & Fitness Goals</option>
+                  <option value="Financial Freedom">💰 Financial Freedom Checklist</option>
+                  <option value="Global Exploration">✈️ Global Exploration & Travel</option>
+                </select>
+              </div>
+
+              <div class="form-check pt-1">
+                <input class="form-check-input" type="checkbox" id="board-field-shared" />
+                <label class="form-check-label font-bold font-sans text-[#5E548E]" for="board-field-shared">
+                  👥 Share with team co-designators
+                </label>
+              </div>
+
+              <div id="board-collaborators-group" class="d-none">
+                <label class="form-label font-bold text-[#5E548E]/80">Design Partners (Registered emails, comma separated)</label>
+                <input type="text" id="board-field-collabs" class="form-control rounded-xl border-[#C8B6FF]/35 py-2 text-xs" placeholder="collab@gmail.com, buddy@studio.com" />
+              </div>
+
+              <div class="pt-3 border-t border-[#C8B6FF]/30 d-flex justify-content-between">
+                <button type="button" id="btn-delete-board" class="px-3 py-2 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 rounded-xl font-bold cursor-pointer d-none">Wipe Board Entirely</button>
+                <div class="d-flex gap-2 ms-auto">
+                  <button type="button" class="px-3 py-2 border rounded-xl" data-bs-dismiss="modal">Cancel</button>
+                  <button type="submit" class="px-3 py-2 bg-[#5E548E] text-white rounded-xl font-bold hover:bg-[#9F86C0] cursor-pointer">Unfurl Design Grid</button>
+                </div>
+              </div>
+
+            </form>
+
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- EXPORT PDF OPTIONS MODAL -->
+    <div class="modal fade text-[#5E548E]" id="exportPdfModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content glass-card p-4 border border-[#C8B6FF]/40 rounded-3xl bg-white dark:bg-[#151221]">
+          <div class="modal-header border-b border-[#C8B6FF]/30 pb-3">
+            <h4 class="modal-title fs-5 font-bold flex items-center gap-2">
+              <i data-lucide="share" class="w-5 h-5 text-[#9F86C0]"></i> Export & Save Layout
+            </h4>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body py-3 space-y-4 font-sans text-xs">
+            <p class="text-[#5E548E]/80 dark:text-cream/80">Choose how would you like to print or save your dreamy vision board offline:</p>
+            
+            <!-- Option 1: High-Fidelity Visual PDF -->
+            <div class="p-3 rounded-2xl bg-[#F8F7FF] dark:bg-[#1E1B2E] border border-[#C8B6FF]/20 space-y-2">
+              <div class="flex items-start justify-between">
+                <div>
+                  <h5 class="font-bold text-sm text-[#5E548E] dark:text-white flex items-center gap-1.5">
+                    <i data-lucide="layout" class="w-4 h-4 text-[#9F86C0]"></i> Landscape Board Poster (Visual PDF)
+                  </h5>
+                  <p class="text-[11px] text-[#5E548E]/70 dark:text-cream/60 mt-1">
+                    Download a high-fidelity visual PDF layout of your board, preserving all cards at their exact curated screen positions.
+                  </p>
+                </div>
+              </div>
+              <div class="pt-1.5 flex justify-end">
+                <button id="btn-export-visual-pdf" type="button" class="px-3.5 py-1.5 bg-[#5E548E] hover:bg-[#9F86C0] text-white font-bold rounded-xl flex items-center gap-1.5 cursor-pointer">
+                  <i data-lucide="download" class="w-3.5 h-3.5"></i> Download Visual PDF
+                </button>
+              </div>
+            </div>
+
+            <!-- Option 2: Document Dossier -->
+            <div class="p-3 rounded-2xl bg-[#F8F7FF] dark:bg-[#1E1B2E] border border-[#C8B6FF]/20 space-y-2">
+              <div class="flex items-start justify-between">
+                <div>
+                  <h5 class="font-bold text-sm text-[#5E548E] dark:text-white flex items-center gap-1.5">
+                    <i data-lucide="file-text" class="w-4 h-4 text-emerald-500"></i> Offline Creator Dossier (Document PDF)
+                  </h5>
+                  <p class="text-[11px] text-[#5E548E]/70 dark:text-cream/60 mt-1">
+                    Download an offline portrait text document compiling all aspirations, quotes, and checklists in an organized layout.
+                  </p>
+                </div>
+              </div>
+              <div class="pt-1.5 flex justify-end">
+                <button id="btn-export-jspdf" type="button" class="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl flex items-center gap-1.5 cursor-pointer">
+                  <i data-lucide="file-text" class="w-3.5 h-3.5"></i> Download Dossier PDF
+                </button>
+              </div>
+            </div>
+
+            <!-- Option 3: Browser Print Dialog -->
+            <div class="p-3 rounded-2xl bg-[#F8F7FF] dark:bg-[#1E1B2E] border border-[#C8B6FF]/20 space-y-2">
+              <div class="flex items-start justify-between">
+                <div>
+                  <h5 class="font-bold text-sm text-[#5E548E] dark:text-white flex items-center gap-1.5">
+                    <i data-lucide="printer" class="w-4 h-4 text-amber-500"></i> Print Canvas Layout (Browser Print)
+                  </h5>
+                  <p class="text-[11px] text-[#5E548E]/70 dark:text-cream/60 mt-1">
+                    Open the browser's native print interface to send the canvas layout to a printer or save it to PDF using system print drivers.
+                  </p>
+                </div>
+              </div>
+              <div class="pt-1.5 flex justify-end">
+                <button id="btn-export-print" type="button" class="px-3.5 py-1.5 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-xl flex items-center gap-1.5 cursor-pointer">
+                  <i data-lucide="printer" class="w-3.5 h-3.5"></i> Open Print Dialog
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- Bootstrap 5 JS Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Lucide icons bundle -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- html2canvas library for visual screenshot exports -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    
+    <!-- Our magnificent modular vanilla Javascript driver -->
+
+  </body>
+</html>
