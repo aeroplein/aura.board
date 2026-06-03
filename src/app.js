@@ -42,7 +42,7 @@ function parseChecklistLine(line) {
   const rawLine = String(line || '');
   const match = rawLine.match(/^\s*(?:[-*]\s*)?\[(x|X| )\]\s*(.*)$/);
   if (!match) {
-    return { text: rawLine.replace(/^\s*[-*]\s+/, ''), checked: false };
+    return { text: rawLine.replace(/^\s*(?:[-*]|\d+[\).]|[☐□])\s+/, ''), checked: false };
   }
 
   return { text: match[2], checked: match[1].toLowerCase() === 'x' };
@@ -50,6 +50,72 @@ function parseChecklistLine(line) {
 
 function serializeChecklistLine(text, checked) {
   return `[${checked ? 'x' : ' '}] ${String(text || '').trim()}`;
+}
+
+function normalizeChecklistContent(value) {
+  let text = String(value || '').replace(/\r\n?/g, '\n').trim();
+  if (!text) return '';
+
+  if (!text.includes('\n')) {
+    text = text
+      .replace(/([^\n])\s*(?=\d+[\).]\s+)/g, '$1\n')
+      .replace(/\s+(?=(?:[-*]|\[[ xX]\]|[☐□])\s+)/g, '\n');
+  }
+
+  return text
+    .split('\n')
+    .map(line => line.trim())
+    .filter(Boolean)
+    .map(line => {
+      if (/^\[(?:x|X| )\]\s+/.test(line)) return line;
+      return line
+        .replace(/^\d+[\).]\s+/, '[ ] ')
+        .replace(/^[☐□]\s+/, '[ ] ')
+        .replace(/^[-*]\s+/, '[ ] ');
+    })
+    .join('\n');
+}
+
+function getChecklistSteps(value) {
+  return normalizeChecklistContent(value)
+    .split('\n')
+    .filter(Boolean)
+    .map(parseChecklistLine);
+}
+
+function getQuoteParts(content, caption) {
+  let quoteText = String(content || '').trim();
+  let author = String(caption || '').trim();
+  if (/^(source|source concept|concept focus)$/i.test(author)) {
+    author = '';
+  }
+
+  if (!author) {
+    const attribution = quoteText.match(/^(.*?)\s+[-–—]\s+([^–—-]{2,80})$/);
+    if (attribution) {
+      quoteText = attribution[1].trim().replace(/^["“]+|["”]+$/g, '');
+      author = attribution[2].trim();
+    }
+  }
+
+  return { quoteText, author };
+}
+
+function normalizeGeneratedItemForCanvas(item) {
+  const normalizedType = normalizeBoardItemType(item?.type);
+  const normalized = { ...item, type: normalizedType };
+
+  if (normalizedType === 'note') {
+    normalized.content = normalizeChecklistContent(normalized.content);
+  }
+
+  if (normalizedType === 'quote') {
+    const quote = getQuoteParts(normalized.content, normalized.caption);
+    normalized.content = quote.quoteText;
+    normalized.caption = quote.author;
+  }
+
+  return normalized;
 }
 
 function isImageKeywordQuery(value) {
@@ -301,11 +367,13 @@ function refreshStudioDisplay() {
 
     let subHtml = '';
     if (it.type === 'quote') {
-      subHtml = `<p class="italic text-xs my-2 text-[#5E548E]/90">"${safePayload}"</p>
-                 <span class="text-[9px] font-mono text-dusty uppercase text-right block">- ${escapeHtml(it.caption || 'Source')}</span>`;
+      const quote = getQuoteParts(revealedPayload, it.caption);
+      const quoteAuthor = quote.author ? `<span class="text-[9px] font-mono text-dusty uppercase text-right block">- ${escapeHtml(quote.author)}</span>` : '';
+      subHtml = `<p class="italic text-xs my-2 text-[#5E548E]/90">"${escapeHtml(quote.quoteText)}"</p>
+                 ${quoteAuthor}`;
     } else if (it.type === 'note') {
       // Map multiple checklist items if multi line
-      const steps = (revealedPayload || '').split('\n').filter(Boolean).map(parseChecklistLine);
+      const steps = getChecklistSteps(revealedPayload);
       let listItems = steps.map((step, index) => `
         <li class="d-flex align-items-center gap-1 px-1 py-0.5 text-[11px] font-mono">
           <input type="checkbox" class="form-check-input mt-0 board-note-check" data-id="${it.id}" data-index="${index}" ${step.checked ? 'checked' : ''} />
@@ -428,7 +496,7 @@ function handleChecklistToggle(e) {
 
   const isEncrypted = item.isEncrypted || item.content?.startsWith('shield_v15_');
   let contentToUpdate = isEncrypted ? decryptText(item.content) : item.content;
-  const lines = String(contentToUpdate || '').split('\n').filter(Boolean);
+  const lines = normalizeChecklistContent(contentToUpdate).split('\n').filter(Boolean);
   const parsedLines = lines.map(parseChecklistLine);
   if (!parsedLines[lineIndex]) return;
 
@@ -1243,22 +1311,23 @@ function renderAiBoardInsights(data) {
   aiAssetsList.innerHTML = '';
   if (data.recommendedItems && data.recommendedItems.length > 0) {
     data.recommendedItems.forEach((rm, idx) => {
+      const normalizedRecommendation = normalizeGeneratedItemForCanvas(rm);
       const assetCard = document.createElement('div');
       assetCard.className = "p-2.5 rounded-xl border border-[#C8B6FF]/30 bg-white/70 text-xs text-[#5E548E] space-y-2 card-ai-suggestion shadow-xs";
-      const safeTitle = escapeHtml(rm.title || 'Suggested element');
-      const safeType = escapeHtml(rm.type || 'note');
-      const safeCaption = escapeHtml(rm.caption || 'Concept Query');
-      const safeContent = escapeHtml(rm.content || '');
+      const safeTitle = escapeHtml(normalizedRecommendation.title || 'Suggested element');
+      const safeType = escapeHtml(normalizedRecommendation.type || 'note');
+      const safeCaption = escapeHtml(normalizedRecommendation.caption || 'Concept Query');
+      const safeContent = escapeHtml(normalizedRecommendation.content || '');
       
       let preHtml = '';
-      if (rm.type === 'image') {
-        const urlToUse = resolveImageSource(rm.content);
+      if (normalizedRecommendation.type === 'image') {
+        const urlToUse = resolveImageSource(normalizedRecommendation.content);
         preHtml = `<div class="relative h-16 rounded-lg overflow-hidden bg-[#F8F7FF] dark:bg-[#1E1B2E]">
-                     <img src="${urlToUse}" alt="${safeTitle}" class="w-full h-full object-cover" referrerPolicy="no-referrer" ${imageDataAttributes(rm.title, rm.caption)} onerror="window.handleImageLoadError(this)" />
+                     <img src="${urlToUse}" alt="${safeTitle}" class="w-full h-full object-cover" referrerPolicy="no-referrer" ${imageDataAttributes(normalizedRecommendation.title, normalizedRecommendation.caption)} onerror="window.handleImageLoadError(this)" />
                    </div>
                    <p class="text-[10px] text-dusty italic mb-0">${safeCaption}</p>`;
       } else {
-        preHtml = `<p class="italic font-mono text-[10.5px] bg-[#F8F7FF] p-1.5 rounded text-plum border border-black/5 leading-normal truncate-3-lines">${safeContent}</p>`;
+        preHtml = `<p class="italic font-mono text-[10.5px] bg-[#F8F7FF] p-1.5 rounded text-plum border border-black/5 leading-normal whitespace-pre-line truncate-3-lines">${safeContent}</p>`;
       }
 
       assetCard.innerHTML = `
@@ -1275,7 +1344,7 @@ function renderAiBoardInsights(data) {
       aiAssetsList.appendChild(assetCard);
 
       assetCard.querySelector('.btn-inject-ai-item').addEventListener('click', () => {
-        injectRecommendedItem(rm);
+        injectRecommendedItem(normalizedRecommendation);
         assetCard.querySelector('.btn-inject-ai-item').textContent = 'Added';
         assetCard.querySelector('.btn-inject-ai-item').disabled = true;
         assetCard.querySelector('.btn-inject-ai-item').className = 'w-full py-1.5 bg-emerald-100 text-emerald-800 text-[9px] font-bold rounded-lg cursor-not-allowed';
@@ -1296,18 +1365,19 @@ function injectRecommendedItem(item) {
   const bIndex = boards.findIndex(b => b.id === currentBoardId);
   if (bIndex === -1) return;
 
+  const normalizedItem = normalizeGeneratedItemForCanvas(item);
   const freshId = `ai-item-${Date.now()}`;
   const newItem = {
     id: freshId,
-    title: item.title,
-    type: normalizeBoardItemType(item.type),
-    content: item.content,
-    caption: item.caption || '',
-    color: item.color || 'bg-white border-[#C8B6FF]/30 text-[#5E548E]',
+    title: normalizedItem.title,
+    type: normalizedItem.type,
+    content: normalizedItem.content,
+    caption: normalizedItem.caption || '',
+    color: normalizedItem.color || 'bg-white border-[#C8B6FF]/30 text-[#5E548E]',
     x: Math.round(20 + Math.random() * 40),
     y: Math.round(25 + Math.random() * 30),
-    width: 25,
-    height: 22,
+    width: normalizedItem.width || 25,
+    height: normalizedItem.height || 22,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
   };
@@ -1482,19 +1552,20 @@ function setupGalleryHandlers() {
     const items = data.suggestedItems || data.itemsToCreate;
     if (items && items.length > 0) {
       items.forEach((rm, index) => {
+        const normalizedRecommendation = normalizeGeneratedItemForCanvas(rm);
         const itemCol = document.createElement('div');
         itemCol.className = index % 5 === 0 ? 'col-md-6' : 'col-md-4';
-        const safeTitle = escapeHtml(rm.title || 'Suggested element');
-        const safeType = escapeHtml(rm.type || 'note');
-        const safeCaption = escapeHtml(rm.caption || 'Concept tag');
-        const safeContent = escapeHtml(rm.content || '');
+        const safeTitle = escapeHtml(normalizedRecommendation.title || 'Suggested element');
+        const safeType = escapeHtml(normalizedRecommendation.type || 'note');
+        const safeCaption = escapeHtml(normalizedRecommendation.caption || 'Concept tag');
+        const safeContent = escapeHtml(normalizedRecommendation.content || '');
         
         let preHtml = '';
-        if (rm.type === 'image') {
-          const finalUrl = resolveImageSource(rm.content);
+        if (normalizedRecommendation.type === 'image') {
+          const finalUrl = resolveImageSource(normalizedRecommendation.content);
           preHtml = `
             <div class="my-2 rounded-lg overflow-hidden relative h-24 bg-[#F8F7FF] dark:bg-[#1E1B2E]">
-              <img src="${finalUrl}" alt="${safeTitle}" class="w-full h-full object-cover" referrerPolicy="no-referrer" ${imageDataAttributes(rm.title, rm.caption)} onerror="window.handleImageLoadError(this)" />
+              <img src="${finalUrl}" alt="${safeTitle}" class="w-full h-full object-cover" referrerPolicy="no-referrer" ${imageDataAttributes(normalizedRecommendation.title, normalizedRecommendation.caption)} onerror="window.handleImageLoadError(this)" />
               <div class="absolute bottom-0 inset-x-0 bg-black/40 text-white p-1 text-[9px] text-center italic">${safeCaption}</div>
             </div>
           `;
@@ -1558,18 +1629,19 @@ function setupGalleryHandlers() {
     }
 
     items.forEach((it, idx) => {
+      const normalizedItem = normalizeGeneratedItemForCanvas(it);
       const freshId = `gallery-item-${Date.now()}-${idx}`;
       const newItem = {
         id: freshId,
-        title: it.title,
-        type: normalizeBoardItemType(it.type),
-        content: it.content,
-        caption: it.caption || '',
-        color: it.color || 'bg-white border-[#C8B6FF]/30 text-[#5E548E]',
+        title: normalizedItem.title,
+        type: normalizedItem.type,
+        content: normalizedItem.content,
+        caption: normalizedItem.caption || '',
+        color: normalizedItem.color || 'bg-white border-[#C8B6FF]/30 text-[#5E548E]',
         x: Math.round(15 + Math.random() * 50),
         y: Math.round(20 + Math.random() * 40),
-        width: it.width || 25,
-        height: it.height || 22,
+        width: normalizedItem.width || 25,
+        height: normalizedItem.height || 22,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       };
@@ -1811,6 +1883,7 @@ function generateProgrammaticPdf() {
 
           const isEncrypted = it.isEncrypted || it.content?.startsWith('shield_v15_');
           const revealedPayload = isEncrypted ? decryptText(it.content) : it.content;
+          const quote = getQuoteParts(revealedPayload, it.caption);
 
           doc.setFillColor(248, 247, 255); // #F8F7FF
           doc.rect(15, currentY, pageWidth - 30, 20, 'F');
@@ -1819,14 +1892,16 @@ function generateProgrammaticPdf() {
           doc.setFontSize(10);
           doc.setTextColor(60, 60, 60);
 
-          const quoteText = `"${revealedPayload}"`;
+          const quoteText = `"${quote.quoteText}"`;
           const splitQuote = doc.splitTextToSize(quoteText, pageWidth - 42);
           doc.text(splitQuote, 20, currentY + 7);
 
-          doc.setFont("Helvetica", "bold");
-          doc.setFontSize(8);
-          doc.setTextColor(159, 134, 192);
-          doc.text(`— ${it.caption || 'Source concept'}`.toUpperCase(), pageWidth - 22, currentY + 16, { align: 'right' });
+          if (quote.author) {
+            doc.setFont("Helvetica", "bold");
+            doc.setFontSize(8);
+            doc.setTextColor(159, 134, 192);
+            doc.text(`- ${quote.author}`.toUpperCase(), pageWidth - 22, currentY + 16, { align: 'right' });
+          }
 
           currentY += 25;
         });
@@ -1849,7 +1924,7 @@ function generateProgrammaticPdf() {
         notes.forEach(it => {
           const isEncrypted = it.isEncrypted || it.content?.startsWith('shield_v15_');
           const revealedPayload = isEncrypted ? decryptText(it.content) : it.content;
-          const steps = (revealedPayload || '').split('\n').filter(Boolean);
+          const steps = getChecklistSteps(revealedPayload);
 
           const approxHeight = 8 + (steps.length * 6);
           if (currentY + approxHeight > pageHeight - 20) {
@@ -1863,14 +1938,14 @@ function generateProgrammaticPdf() {
           doc.text(it.title.toUpperCase(), 15, currentY);
           currentY += 5;
 
-          steps.forEach(s => {
+          steps.forEach(step => {
             doc.setFont("Helvetica", "normal");
             doc.setFontSize(10);
             doc.setTextColor(80, 80, 80);
             
             doc.setDrawColor(159, 134, 192);
             doc.rect(17, currentY - 3, 3.5, 3.5);
-            doc.text(s, 24, currentY);
+            doc.text(step.text, 24, currentY);
             currentY += 6;
           });
           currentY += 4;

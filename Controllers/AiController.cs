@@ -96,8 +96,8 @@ Your task is to:
 1. Provide an inspiring, encouraging analysis paragraph summarizing the core themes/moods observed on this board and explain how the recommended elements will help them expand their vision. (Make it max 3 sentences, warm and hyper-focused).
 2. Recommend 3 to 4 hex color codes that extend or beautifully contrast with the board's vibe.
 3. Generate exactly 3 fresh, highly tailored recommendations the user can add to their canvas:
-   - 1 quote element (deeply aligned quote with author)
-   - 1 note element (a 3-step actionable, specific checklist task list relevant to the current board's themes)
+   - 1 quote element (deeply aligned quote text in ""content"" and the person who said it in ""caption"")
+   - 1 note element (a 3-step actionable, specific checklist task list relevant to the current board's themes; every checklist step must be on its own line)
    - 1 image element (with a highly descriptive search query for Unsplash in ""content"" to represent the target vision, and an aesthetic photo motivation caption in ""caption"")
 
 Return a JSON object matching this schema exactly:
@@ -108,8 +108,8 @@ Return a JSON object matching this schema exactly:
      {{
         ""type"": ""quote"" | ""note"" | ""text"" | ""image"",
         ""title"": ""Short title label of the recommendation"",
-        ""content"": ""For quote type: write the quote only. For note type: 3 actionable bulleted steps. For image type: a highly descriptive keyword search concept to look up (e.g. 'cozy modern log cabin fireplace morning')"",
-        ""caption"": ""For image type: a short tagline motivation caption (optional)"",
+        ""content"": ""For quote type: write the quote only, without author. For note type: exactly 3 actionable checklist lines separated by newline characters, formatted like '[ ] First step\n[ ] Second step\n[ ] Third step'. For image type: a highly descriptive keyword search concept to look up (e.g. 'cozy modern log cabin fireplace morning')"",
+        ""caption"": ""For quote type: the quote author. For image type: a short tagline motivation caption (optional)"",
         ""color"": ""bg-indigo-50 border-indigo-200"" | ""bg-amber-50 border-amber-200"" | ""bg-rose-50 border-rose-200"" | ""bg-emerald-50 border-emerald-200"" | ""bg-cyan-50 border-cyan-200"",
         ""width"": 25,
         ""height"": 28
@@ -256,8 +256,8 @@ Create a response matching this schema:
      {{
         ""type"": ""quote"" | ""note"" | ""text"" | ""image"",
         ""title"": ""Short title label"",
-        ""content"": ""For type 'quote': quote text. For 'note': bulleted markdown list of 3 actionable steps. For 'text': descriptive insight. For 'image': a highly descriptive keyword matching this aspect of the theme to lookup (e.g., 'cozy scandinavian cabin interior')"",
-        ""caption"": ""For image type: brief 1-sentence photo motivation caption description (optional)"",
+        ""content"": ""For type 'quote': quote text only, without author. For 'note': exactly 3 actionable checklist lines separated by newline characters, formatted like '[ ] First step\n[ ] Second step\n[ ] Third step'. For 'text': descriptive insight. For 'image': a highly descriptive keyword matching this aspect of the theme to lookup (e.g., 'cozy scandinavian cabin interior')"",
+        ""caption"": ""For quote type: the quote author. For image type: brief 1-sentence photo motivation caption description (optional)"",
         ""color"": ""bg-indigo-50 border-indigo-200"" | ""bg-amber-50 border-amber-200"" | ""bg-rose-50 border-rose-200"" | ""bg-emerald-50 border-emerald-200"" | ""bg-cyan-50 border-cyan-200"",
         ""width"": 30,
         ""height"": 25
