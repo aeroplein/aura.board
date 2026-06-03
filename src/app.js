@@ -31,6 +31,7 @@ let boards = [];
 let currentBoardId = null;
 let boardsSearchQuery = "";
 let pendingBoardLinkId = new URLSearchParams(window.location.search).get('board');
+let pendingCustomCardColor = null;
 const resolvedImageCache = new Map();
 
 function normalizeBoardItemType(type) {
@@ -116,6 +117,59 @@ function normalizeGeneratedItemForCanvas(item) {
   }
 
   return normalized;
+}
+
+function normalizeHexColor(value) {
+  const raw = String(value || '').trim();
+  const match = raw.match(/^#?([0-9a-fA-F]{6})$/);
+  return match ? `#${match[1].toUpperCase()}` : '#C8B6FF';
+}
+
+function isCustomCardColor(value) {
+  return String(value || '').startsWith('custom:');
+}
+
+function getCardColorValue(value) {
+  return normalizeHexColor(String(value || '').replace(/^custom:/, ''));
+}
+
+function getCardColorPresentation(value) {
+  if (!isCustomCardColor(value)) {
+    return {
+      className: value || 'bg-white border-[#C8B6FF]/30 text-[#5E548E]',
+      style: {}
+    };
+  }
+
+  const hex = getCardColorValue(value);
+  return {
+    className: 'border text-[#5E548E]',
+    style: {
+      backgroundColor: hex,
+      borderColor: hex,
+      boxShadow: '0 8px 22px rgba(94, 84, 142, 0.12)'
+    }
+  };
+}
+
+function setCustomColorSelection(hex) {
+  const normalizedHex = normalizeHexColor(hex);
+  const customRadio = document.getElementById('item-color-custom-radio');
+  const colorInput = document.getElementById('item-field-custom-color');
+  const colorText = document.getElementById('item-field-custom-color-text');
+  if (customRadio) customRadio.checked = true;
+  if (colorInput) colorInput.value = normalizedHex;
+  if (colorText) colorText.value = normalizedHex;
+}
+
+function getSelectedCardColorValue() {
+  const colorRadio = document.querySelector('input[name="color-preset"]:checked');
+  if (!colorRadio) return 'bg-white border-[#C8B6FF]/30 text-[#5E548E]';
+  if (colorRadio.value !== '__custom__') return colorRadio.value;
+
+  const colorText = document.getElementById('item-field-custom-color-text')?.value;
+  const colorInput = document.getElementById('item-field-custom-color')?.value;
+  return `custom:${normalizeHexColor(colorText || colorInput)}`;
 }
 
 function isImageKeywordQuery(value) {
@@ -341,8 +395,12 @@ function refreshStudioDisplay() {
   // Render cards absolute positions using viewport percentages scaled to bounds
   b.items.forEach(it => {
     const cardEl = document.createElement('div');
-    cardEl.className = `draggable-card glass-card p-3 flex flex-col justify-between ${it.color || 'bg-white border-[#C8B6FF]/30 text-[#5E548E]'}`;
+    const colorPresentation = getCardColorPresentation(it.color);
+    cardEl.className = `draggable-card glass-card p-3 flex flex-col justify-between ${colorPresentation.className}`;
     cardEl.id = `card-${it.id}`;
+    Object.entries(colorPresentation.style).forEach(([key, value]) => {
+      cardEl.style[key] = value;
+    });
     let tiltHash = 0;
     const idStr = String(it.id || '');
     for (let ci = 0; ci < idStr.length; ci++) tiltHash += idStr.charCodeAt(ci);
@@ -851,7 +909,23 @@ function setupItemForm() {
   const previewImg = document.getElementById('item-image-preview');
   const removeImgBtn = document.getElementById('btn-remove-uploaded-image');
   const contentTextarea = document.getElementById('item-field-content');
+  const customColorInput = document.getElementById('item-field-custom-color');
+  const customColorText = document.getElementById('item-field-custom-color-text');
+  const customColorRadio = document.getElementById('item-color-custom-radio');
   const submitBtn = form.querySelector('button[type="submit"]');
+
+  customColorInput?.addEventListener('input', () => {
+    setCustomColorSelection(customColorInput.value);
+  });
+
+  customColorText?.addEventListener('input', () => {
+    const raw = customColorText.value.trim();
+    if (/^#?[0-9a-fA-F]{6}$/.test(raw)) {
+      setCustomColorSelection(raw);
+    } else if (customColorRadio) {
+      customColorRadio.checked = true;
+    }
+  });
 
   if (fileInput) {
     fileInput.addEventListener('change', async (e) => {
@@ -955,6 +1029,9 @@ function setupItemForm() {
     selectedItemToEdit = null;
     form.reset();
     document.getElementById('item-field-id').value = '';
+    if (pendingCustomCardColor) {
+      setCustomColorSelection(pendingCustomCardColor);
+    }
     
     // Reset file input and preview container for new item
     if (fileInput) fileInput.value = '';
@@ -992,9 +1069,7 @@ function setupItemForm() {
       content = encryptText(content, currentUser.id);
     }
 
-    // Find custom background color selection
-    const colorRadio = document.querySelector('input[name="color-preset"]:checked');
-    const colorVal = colorRadio ? colorRadio.value : 'bg-white border-[#C8B6FF]/30 text-[#5E548E]';
+    const colorVal = getSelectedCardColorValue();
 
     let itemObj = null;
     let finalZIndex = 10;
@@ -1124,6 +1199,8 @@ function openEditCardModal(item) {
   const inputCheck = document.querySelector(`input[name="color-preset"][value="${item.color}"]`);
   if (inputCheck) {
     inputCheck.checked = true;
+  } else if (isCustomCardColor(item.color)) {
+    setCustomColorSelection(getCardColorValue(item.color));
   } else {
     document.querySelector('input[name="color-preset"][value="bg-white border-[#C8B6FF]/30 text-[#5E548E]"]').checked = true;
   }
@@ -1300,8 +1377,10 @@ function renderAiBoardInsights(data) {
       colorDiv.style.backgroundColor = hex;
       colorDiv.title = `Suggested Color: ${hex}`;
       colorDiv.addEventListener('click', () => {
+        pendingCustomCardColor = normalizeHexColor(hex);
+        setCustomColorSelection(pendingCustomCardColor);
         navigator.clipboard.writeText(hex);
-        showSyncBanner(`Copied ${hex} color to clipboard!`, false);
+        showSyncBanner(`Selected ${pendingCustomCardColor} for your next custom card tint.`, false);
       });
       aiPaletteFeedback.appendChild(colorDiv);
     });
@@ -1540,8 +1619,10 @@ function setupGalleryHandlers() {
         chip.className = "px-2 py-1 rounded bg-white text-[10px] font-mono border border-black/10 text-plum shadow-xs flex items-center gap-1 cursor-pointer";
         chip.innerHTML = `<span class="h-3 w-3 rounded d-inline-block" style="background-color: ${hx}"></span> ${hx}`;
         chip.addEventListener('click', () => {
+          pendingCustomCardColor = normalizeHexColor(hx);
+          setCustomColorSelection(pendingCustomCardColor);
           navigator.clipboard.writeText(hx);
-          showSyncBanner(`Copied ${hx} to clipboard!`, false);
+          showSyncBanner(`Selected ${pendingCustomCardColor} for your next custom card tint.`, false);
         });
         gBadges.appendChild(chip);
       });
