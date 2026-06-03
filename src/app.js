@@ -133,6 +133,41 @@ function getCardColorValue(value) {
   return normalizeHexColor(String(value || '').replace(/^custom:/, ''));
 }
 
+function hexToRgb(hex) {
+  const normalized = normalizeHexColor(hex).slice(1);
+  return {
+    r: parseInt(normalized.slice(0, 2), 16),
+    g: parseInt(normalized.slice(2, 4), 16),
+    b: parseInt(normalized.slice(4, 6), 16)
+  };
+}
+
+function relativeLuminance({ r, g, b }) {
+  const toLinear = (channel) => {
+    const value = channel / 255;
+    return value <= 0.03928 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+  };
+
+  return (0.2126 * toLinear(r)) + (0.7152 * toLinear(g)) + (0.0722 * toLinear(b));
+}
+
+function getReadableCardTextColors(hex) {
+  const isLight = relativeLuminance(hexToRgb(hex)) > 0.45;
+  return isLight
+    ? {
+        text: '#2F275A',
+        muted: '#4E4578',
+        chipBg: 'rgba(47, 39, 90, 0.12)',
+        iconBg: 'rgba(47, 39, 90, 0.14)'
+      }
+    : {
+        text: '#FFFFFF',
+        muted: 'rgba(255, 255, 255, 0.82)',
+        chipBg: 'rgba(255, 255, 255, 0.18)',
+        iconBg: 'rgba(255, 255, 255, 0.16)'
+      };
+}
+
 function getCardColorPresentation(value) {
   if (!isCustomCardColor(value)) {
     return {
@@ -142,11 +177,17 @@ function getCardColorPresentation(value) {
   }
 
   const hex = getCardColorValue(value);
+  const readableColors = getReadableCardTextColors(hex);
   return {
-    className: 'border text-[#5E548E]',
+    className: 'custom-color-card border',
     style: {
       backgroundColor: hex,
       borderColor: hex,
+      color: readableColors.text,
+      '--card-text-color': readableColors.text,
+      '--card-muted-color': readableColors.muted,
+      '--card-chip-bg': readableColors.chipBg,
+      '--card-icon-bg': readableColors.iconBg,
       boxShadow: '0 8px 22px rgba(94, 84, 142, 0.12)'
     }
   };
