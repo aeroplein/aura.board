@@ -237,6 +237,13 @@ function setCustomColorSelection(hex) {
   if (colorText) colorText.value = normalizedHex;
 }
 
+function resetCustomColorSelection() {
+  const colorInput = document.getElementById('item-field-custom-color');
+  const colorText = document.getElementById('item-field-custom-color-text');
+  if (colorInput) colorInput.value = '#C8B6FF';
+  if (colorText) colorText.value = '#C8B6FF';
+}
+
 function getSelectedCardColorValue() {
   const colorRadio = document.querySelector('input[name="color-preset"]:checked');
   if (!colorRadio) return 'bg-white border-[#C8B6FF]/30 text-[#5E548E]';
@@ -1168,9 +1175,20 @@ function setupItemForm() {
     }
   }
 
+  const selectCurrentCustomColor = () => {
+    setCustomColorSelection(customColorText?.value || customColorInput?.value || '#C8B6FF');
+  };
+
   customColorInput?.addEventListener('input', () => {
     setCustomColorSelection(customColorInput.value);
   });
+
+  customColorInput?.addEventListener('change', () => {
+    setCustomColorSelection(customColorInput.value);
+  });
+
+  customColorInput?.addEventListener('focus', selectCurrentCustomColor);
+  customColorInput?.addEventListener('click', selectCurrentCustomColor);
 
   customColorText?.addEventListener('input', () => {
     const raw = customColorText.value.trim();
@@ -1180,6 +1198,16 @@ function setupItemForm() {
       customColorRadio.checked = true;
     }
   });
+
+  customColorText?.addEventListener('change', () => {
+    const raw = customColorText.value.trim();
+    if (/^#?[0-9a-fA-F]{6}$/.test(raw)) {
+      setCustomColorSelection(raw);
+    }
+  });
+
+  customColorText?.addEventListener('focus', selectCurrentCustomColor);
+  customColorText?.addEventListener('click', selectCurrentCustomColor);
 
   imageSourceMode?.addEventListener('change', () => {
     updateImageSourceModeUI();
@@ -1317,6 +1345,7 @@ function setupItemForm() {
     document.getElementById('item-field-id').value = '';
     if (imageSourceMode) imageSourceMode.value = 'keyword';
     if (pinterestUrlInput) pinterestUrlInput.value = '';
+    resetCustomColorSelection();
     if (pendingCustomCardColor) {
       setCustomColorSelection(pendingCustomCardColor);
     }
@@ -1524,6 +1553,7 @@ function openEditCardModal(item) {
     setCustomColorSelection(getCardColorValue(item.color));
   } else {
     document.querySelector('input[name="color-preset"][value="bg-white border-[#C8B6FF]/30 text-[#5E548E]"]').checked = true;
+    resetCustomColorSelection();
   }
 
   // Populate preview if type is image and has content
