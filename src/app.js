@@ -279,6 +279,26 @@ function refreshResolvedImageForItem(item) {
   }
 }
 
+async function anchorImageContentIfNeeded(rawContent) {
+  const content = String(rawContent || '').trim();
+  if (!isImageKeywordQuery(content)) return content;
+
+  try {
+    const resolvedSearchUrl = resolvedImageCache.get(content) || resolveImageSource(content);
+    const response = await fetch(resolvedSearchUrl);
+    const anchoredUrl = response?.url || '';
+    if (response.ok && anchoredUrl && !anchoredUrl.includes('/api/images/search')) {
+      resolvedImageCache.delete(content);
+      resolvedImageCache.set(anchoredUrl, anchoredUrl);
+      return anchoredUrl;
+    }
+  } catch (error) {
+    console.warn('Image keyword could not be anchored; keeping keyword fallback.', error);
+  }
+
+  return content;
+}
+
 window.handleImageLoadError = function handleImageLoadError(img) {
   const container = img.closest('[data-image-frame]') || img.parentElement;
   if (!container) return;
@@ -1313,7 +1333,7 @@ function setupItemForm() {
     itemModalObj.show();
   });
 
-  form.addEventListener('submit', (e) => {
+  form.addEventListener('submit', async (e) => {
     e.preventDefault();
     const itemId = document.getElementById('item-field-id').value;
     const title = document.getElementById('item-field-title').value;
@@ -1325,6 +1345,11 @@ function setupItemForm() {
 
     const bIndex = boards.findIndex(b => b.id === currentBoardId);
     if (bIndex === -1) return;
+
+    if (type === 'image') {
+      content = await anchorImageContentIfNeeded(content);
+      document.getElementById('item-field-content').value = content;
+    }
 
     // Apply reversible local obfuscation prior to saving.
     if (isSecureChecked) {
@@ -1837,8 +1862,8 @@ function renderAiBoardInsights(data) {
         setAiSuggestionButtonAdded(addButton);
       }
 
-      addButton.addEventListener('click', () => {
-        injectRecommendedItem(normalizedRecommendation);
+      addButton.addEventListener('click', async () => {
+        await injectRecommendedItem(normalizedRecommendation);
         addedAiSuggestionKeys.add(suggestionKey);
         setAiSuggestionButtonAdded(addButton);
       });
@@ -1854,7 +1879,7 @@ function renderAiBoardInsights(data) {
   lucide.createIcons();
 }
 
-function injectRecommendedItem(item) {
+async function injectRecommendedItem(item) {
   const bIndex = boards.findIndex(b => b.id === currentBoardId);
   if (bIndex === -1) return;
 
@@ -1868,7 +1893,9 @@ function injectRecommendedItem(item) {
     id: freshId,
     title: normalizedItem.title,
     type: normalizedItem.type,
-    content: normalizedItem.content,
+    content: normalizedItem.type === 'image'
+      ? await anchorImageContentIfNeeded(normalizedItem.content)
+      : normalizedItem.content,
     caption: normalizedItem.caption || '',
     color: normalizedItem.color || 'bg-white border-[#C8B6FF]/30 text-[#5E548E]',
     x: Math.round(20 + Math.random() * 40),
@@ -2101,7 +2128,7 @@ function setupGalleryHandlers() {
   }
 
   // Push integration into Selected Board
-  document.getElementById('btn-gallery-push-all').addEventListener('click', () => {
+  document.getElementById('btn-gallery-push-all').addEventListener('click', async () => {
     if (!activeGalleryResult) {
       showSyncBanner('No elements available to push. Please generate inspiration first.', true);
       return;
@@ -2126,13 +2153,15 @@ function setupGalleryHandlers() {
       return;
     }
 
-    items.forEach((normalizedItem, idx) => {
+    for (const [idx, normalizedItem] of items.entries()) {
       const freshId = `gallery-item-${Date.now()}-${idx}`;
       const newItem = {
         id: freshId,
         title: normalizedItem.title,
         type: normalizedItem.type,
-        content: normalizedItem.content,
+        content: normalizedItem.type === 'image'
+          ? await anchorImageContentIfNeeded(normalizedItem.content)
+          : normalizedItem.content,
         caption: normalizedItem.caption || '',
         color: normalizedItem.color || 'bg-white border-[#C8B6FF]/30 text-[#5E548E]',
         x: Math.round(15 + Math.random() * 50),
@@ -2148,7 +2177,7 @@ function setupGalleryHandlers() {
 
       // Save position item
       processSyncAction('upsert_item', bId, freshId, newItem);
-    });
+    }
 
     showSyncBanner(`Injected ${items.length} elements to your "${boards[bIndex].title}" board!`, false);
     enterBoardStudio(bId);
