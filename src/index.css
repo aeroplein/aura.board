@@ -75,12 +75,16 @@ body,
 .site-nav {
   background: rgba(255, 255, 255, 0.75) !important;
   color: #5E548E;
+  border-bottom: 1px solid rgba(200, 182, 255, 0.28) !important;
+  box-shadow: 0 8px 24px -22px rgba(94, 84, 142, 0.4);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
 }
 
 .dark .site-nav {
-  background: rgba(30, 27, 46, 0.75) !important;
+  background: rgba(22, 19, 34, 0.92) !important;
+  border-bottom-color: rgba(200, 182, 255, 0.24) !important;
+  box-shadow: 0 10px 28px -20px rgba(0, 0, 0, 0.8);
 }
 
 .site-brand h1 {
@@ -89,14 +93,79 @@ body,
   letter-spacing: -0.025em;
 }
 
+.dark .site-brand,
+.dark .site-brand h1 {
+  color: #DED6FF !important;
+}
+
 #nav-links button {
   color: #5E548E !important;
   background: transparent;
+  border: 1px solid transparent;
+  box-shadow: none !important;
 }
 
 #nav-links button.bg-white {
   background: #ffffff !important;
   color: #9F86C0 !important;
+  border-color: rgba(200, 182, 255, 0.34);
+}
+
+.dark #nav-links button {
+  color: #BDB0F2 !important;
+  border-color: rgba(200, 182, 255, 0.18);
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.dark #nav-links button:hover {
+  color: #F8F7FF !important;
+  background: rgba(200, 182, 255, 0.1);
+  border-color: rgba(200, 182, 255, 0.3);
+}
+
+.dark #nav-links button.bg-white {
+  background: rgba(248, 247, 255, 0.94) !important;
+  color: #6F5AA8 !important;
+  border-color: transparent;
+  box-shadow: 0 6px 16px -12px rgba(248, 247, 255, 0.55) !important;
+}
+
+.dark #btn-darkMode,
+.dark #session-profile #btn-logout {
+  border-color: rgba(200, 182, 255, 0.22) !important;
+  color: #D7CEFF !important;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.dark #btn-darkMode:hover,
+.dark #session-profile #btn-logout:hover {
+  background: rgba(200, 182, 255, 0.12) !important;
+  border-color: rgba(200, 182, 255, 0.34) !important;
+}
+
+.dark #session-profile .session-name {
+  color: #F8F7FF !important;
+}
+
+.dark #session-profile .session-status {
+  color: #BDB0F2 !important;
+}
+
+.dark footer {
+  background: rgba(22, 19, 34, 0.88) !important;
+  border-top-color: rgba(200, 182, 255, 0.22) !important;
+}
+
+.dark footer,
+.dark footer p,
+.dark footer .text-\[\#9F86C0\],
+.dark footer .text-\[\#9F86C0\]\/60 {
+  color: #CFC5FF !important;
+}
+
+.dark footer .text-\[\#5E548E\],
+.dark footer .text-plum {
+  color: #E6E1FF !important;
 }
 
 .modal-content.glass-card {
