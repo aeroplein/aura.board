@@ -22,7 +22,7 @@ import { decryptText, encryptText, setupCryptoLab as setupCryptoLabHandlers } fr
 import { escapeHtml } from './utils/html.js';
 import { imageDataAttributes, imageFallbackMarkup, resolveImageSource } from './utils/images.js';
 
-// aura.board • Dreamy Gen Z Visual Canvas (Vanilla JavaScript Core Platform)
+// aura.board • Creative Vision Studio (Vanilla JavaScript Core Platform)
 
 // 1. STATE & CACHE REGISTRY
 let currentUser = null;
@@ -471,7 +471,14 @@ function renderUserBoardsList() {
   });
 }
 function enterBoardStudio(id) {
+  const isSwitchingBoards = currentBoardId && currentBoardId !== id;
   currentBoardId = id;
+  if (isSwitchingBoards) {
+    closeAiDrawer();
+    activeAiSuggestionsBoardId = null;
+    activeAiSuggestions = null;
+    addedAiSuggestionKeys.clear();
+  }
   showTab('studio');
 }
 
@@ -491,9 +498,6 @@ function refreshStudioDisplay() {
 
   document.getElementById('studio-board-title').textContent = b.title;
   document.getElementById('studio-board-desc').textContent = b.description || 'Flexible digital curation stage.';
-
-  // Hide AI suggestions container initially upon loading clean board
-  closeAiDrawer();
 
   // Clear workspace stage
   canvasDraggableStage.innerHTML = '';
@@ -727,6 +731,9 @@ function sendCardToBack(itemId) {
 // DRAG MECHANICS (Calculations scaled fluidly to percentages)
 function attachCardDragEvents(el) {
   const container = document.getElementById('canvas-area-wrapper');
+  let pendingTouchDrag = false;
+  let rafDragFrame = null;
+  let nextDragPosition = null;
   
   el.addEventListener('mousedown', dragStart);
   el.addEventListener('touchstart', dragStart, { passive: true });
@@ -741,11 +748,6 @@ function attachCardDragEvents(el) {
     ) {
       return; 
     }
-
-    isDragging = true;
-    draggedElement = el;
-    activeItemId = el.getAttribute('data-id');
-    el.classList.add('is-dragging');
 
     // Bounds dimensions mapping
     activeCanvasOffsetWidth = container.offsetWidth;
@@ -764,15 +766,29 @@ function attachCardDragEvents(el) {
     elementStartX = rect.left - parentRect.left;
     elementStartY = rect.top - parentRect.top;
 
+    if (e.type === 'touchstart') {
+      pendingTouchDrag = true;
+    } else {
+      beginCardDrag();
+    }
+
     document.addEventListener('mousemove', dragMove);
     document.addEventListener('mouseup', dragEnd);
     document.addEventListener('touchmove', dragMove, { passive: false });
     document.addEventListener('touchend', dragEnd);
+    document.addEventListener('touchcancel', dragEnd);
+  }
+
+  function beginCardDrag() {
+    isDragging = true;
+    pendingTouchDrag = false;
+    draggedElement = el;
+    activeItemId = el.getAttribute('data-id');
+    el.classList.add('is-dragging');
   }
 
   function dragMove(e) {
-    if (!isDragging || draggedElement !== el) return;
-    if (e.cancelable) e.preventDefault();
+    if (!isDragging && !pendingTouchDrag) return;
 
     const clientX = e.type === 'touchmove' ? e.touches[0].clientX : e.clientX;
     const clientY = e.type === 'touchmove' ? e.touches[0].clientY : e.clientY;
@@ -780,6 +796,26 @@ function attachCardDragEvents(el) {
     // Compute pixel delta changes
     const dx = clientX - dragStartX;
     const dy = clientY - dragStartY;
+    if (pendingTouchDrag) {
+      const absX = Math.abs(dx);
+      const absY = Math.abs(dy);
+      const dragThreshold = 8;
+
+      if (absY > dragThreshold && absY > absX * 1.25) {
+        pendingTouchDrag = false;
+        cleanupDragListeners();
+        return;
+      }
+
+      if (Math.max(absX, absY) < dragThreshold) {
+        return;
+      }
+
+      beginCardDrag();
+    }
+
+    if (!isDragging || draggedElement !== el) return;
+    if (e.cancelable) e.preventDefault();
 
     let targetLeftX = elementStartX + dx;
     let targetTopY = elementStartY + dy;
@@ -795,11 +831,33 @@ function attachCardDragEvents(el) {
     const percentX = (targetLeftX / activeCanvasOffsetWidth) * 100;
     const percentY = (targetTopY / activeCanvasOffsetHeight) * 100;
 
-    el.style.left = `${percentX.toFixed(2)}%`;
-    el.style.top = `${percentY.toFixed(2)}%`;
+    nextDragPosition = {
+      left: `${percentX.toFixed(2)}%`,
+      top: `${percentY.toFixed(2)}%`
+    };
+
+    if (!rafDragFrame) {
+      rafDragFrame = requestAnimationFrame(() => {
+        rafDragFrame = null;
+        if (!nextDragPosition) return;
+        el.style.left = nextDragPosition.left;
+        el.style.top = nextDragPosition.top;
+      });
+    }
   }
 
   function dragEnd() {
+    pendingTouchDrag = false;
+    if (rafDragFrame) {
+      cancelAnimationFrame(rafDragFrame);
+      rafDragFrame = null;
+      if (nextDragPosition) {
+        el.style.left = nextDragPosition.left;
+        el.style.top = nextDragPosition.top;
+      }
+    }
+    nextDragPosition = null;
+
     if (isDragging && draggedElement === el) {
       // Fetch dynamic coordinates to sync state database
       const finalPercentX = parseFloat(el.style.left);
@@ -813,10 +871,15 @@ function attachCardDragEvents(el) {
     }
 
     el.classList.remove('is-dragging');
+    cleanupDragListeners();
+  }
+
+  function cleanupDragListeners() {
     document.removeEventListener('mousemove', dragMove);
     document.removeEventListener('mouseup', dragEnd);
     document.removeEventListener('touchmove', dragMove);
     document.removeEventListener('touchend', dragEnd);
+    document.removeEventListener('touchcancel', dragEnd);
   }
 }
 
@@ -997,7 +1060,7 @@ function setupItemForm() {
     const imageUploadWrapper = document.getElementById('item-image-upload-wrapper');
     if (val === 'image') {
       imageUploadWrapper?.classList.remove('d-none');
-      labelContent.textContent = 'Unsplash Keyword Query';
+      labelContent.textContent = 'Image Keyword, Image URL, or Pinterest Image Link';
       labelCaption.textContent = 'Aesthetic Photo Tagline / Caption';
       extraCaptionWrap.classList.remove('d-none');
     } else {
@@ -1464,9 +1527,12 @@ const aiDrawerContent = document.getElementById('ai-drawer-content');
 const aiAnalysisFeedback = document.getElementById('ai-analysis-feedback');
 const aiPaletteFeedback = document.getElementById('ai-color-palette-feedback');
 const aiAssetsList = document.getElementById('ai-recommended-assets-list');
+const regenerateAiSuggestionsBtn = document.getElementById('regenerate-ai-suggestions-btn');
+let activeAiSuggestionsBoardId = null;
+let activeAiSuggestions = null;
+const addedAiSuggestionKeys = new Set();
 
-document.getElementById('studio-ai-recommender-btn').addEventListener('click', async (event) => {
-  const triggerBtn = event.currentTarget;
+document.getElementById('studio-ai-recommender-btn').addEventListener('click', async () => {
   aiDrawer.classList.toggle('d-none');
   if (aiDrawer.classList.contains('d-none')) return;
 
@@ -1476,12 +1542,40 @@ document.getElementById('studio-ai-recommender-btn').addEventListener('click', a
     return;
   }
 
-  // Reveal loader
+  if (activeAiSuggestions && activeAiSuggestionsBoardId === currentBoardId) {
+    renderAiBoardInsights(activeAiSuggestions, { storeResult: false });
+    return;
+  }
+
+  await requestAiBoardInsights({ forceRefresh: false });
+});
+
+regenerateAiSuggestionsBtn?.addEventListener('click', async () => {
+  aiDrawer.classList.remove('d-none');
+  await requestAiBoardInsights({ forceRefresh: true });
+});
+
+async function requestAiBoardInsights({ forceRefresh = false } = {}) {
+  const b = boards.find(o => o.id === currentBoardId);
+  if (!b) {
+    aiAnalysisFeedback.textContent = 'Open a board before asking for AI suggestions.';
+    return;
+  }
+
+  const triggerBtn = document.getElementById('studio-ai-recommender-btn');
+  const originalButtonHtml = triggerBtn?.innerHTML;
+  const originalRegenerateHtml = regenerateAiSuggestionsBtn?.innerHTML;
+
   aiDrawerLoader.classList.remove('d-none');
   aiDrawerContent.classList.add('opacity-40');
-  const originalButtonHtml = triggerBtn.innerHTML;
-  triggerBtn.disabled = true;
-  triggerBtn.innerHTML = '<i data-lucide="refresh-cw" class="w-3.5 h-3.5 animate-spin"></i> Loading suggestions';
+  if (triggerBtn) {
+    triggerBtn.disabled = true;
+    triggerBtn.innerHTML = '<i data-lucide="refresh-cw" class="w-3.5 h-3.5 animate-spin"></i> Loading suggestions';
+  }
+  if (regenerateAiSuggestionsBtn) {
+    regenerateAiSuggestionsBtn.disabled = true;
+    regenerateAiSuggestionsBtn.innerHTML = forceRefresh ? 'Regenerating' : 'Loading';
+  }
   lucide.createIcons();
 
   try {
@@ -1500,21 +1594,38 @@ document.getElementById('studio-ai-recommender-btn').addEventListener('click', a
 
     const data = await parseJsonResponse(res, 'AI suggestions are unavailable right now.');
     if (res.ok) {
+      if (forceRefresh || activeAiSuggestionsBoardId !== currentBoardId) {
+        addedAiSuggestionKeys.clear();
+      }
+      activeAiSuggestionsBoardId = currentBoardId;
+      activeAiSuggestions = data;
       renderAiBoardInsights(data);
     } else {
       throw new Error(data?.error || 'AI suggestions are unavailable right now.');
     }
   } catch (err) {
     console.warn('AI recommendations unavailable; using local fallback suggestions.', err);
-    renderAiBoardInsights(buildLocalAiBoardFallback(b));
+    const fallback = buildLocalAiBoardFallback(b);
+    if (forceRefresh || activeAiSuggestionsBoardId !== currentBoardId) {
+      addedAiSuggestionKeys.clear();
+    }
+    activeAiSuggestionsBoardId = currentBoardId;
+    activeAiSuggestions = fallback;
+    renderAiBoardInsights(fallback);
   } finally {
     aiDrawerLoader.classList.add('d-none');
     aiDrawerContent.classList.remove('opacity-40');
-    triggerBtn.disabled = false;
-    triggerBtn.innerHTML = originalButtonHtml;
+    if (triggerBtn) {
+      triggerBtn.disabled = false;
+      triggerBtn.innerHTML = originalButtonHtml;
+    }
+    if (regenerateAiSuggestionsBtn) {
+      regenerateAiSuggestionsBtn.disabled = false;
+      regenerateAiSuggestionsBtn.innerHTML = originalRegenerateHtml || 'Regenerate';
+    }
     lucide.createIcons();
   }
-});
+}
 
 function buildLocalAiBoardFallback(board) {
   const title = board?.title || 'this board';
@@ -1551,6 +1662,22 @@ function buildLocalAiBoardFallback(board) {
   };
 }
 
+function getAiSuggestionKey(item) {
+  return [
+    item?.type || '',
+    item?.title || '',
+    item?.content || '',
+    item?.caption || ''
+  ].join('|');
+}
+
+function setAiSuggestionButtonAdded(button) {
+  if (!button) return;
+  button.textContent = 'Added';
+  button.disabled = true;
+  button.className = 'w-full py-1.5 bg-emerald-100 text-emerald-800 text-[9px] font-bold rounded-lg cursor-not-allowed';
+}
+
 function renderAiBoardInsights(data) {
   aiAnalysisFeedback.textContent = data.analysis || "Analysis formatted successfully.";
   
@@ -1579,6 +1706,7 @@ function renderAiBoardInsights(data) {
     recommendedItems.forEach((normalizedRecommendation, idx) => {
       const assetCard = document.createElement('div');
       assetCard.className = "p-2.5 rounded-xl border border-[#C8B6FF]/30 bg-white/70 text-xs text-[#5E548E] space-y-2 card-ai-suggestion shadow-xs";
+      const suggestionKey = getAiSuggestionKey(normalizedRecommendation);
       const safeTitle = escapeHtml(normalizedRecommendation.title || 'Suggested element');
       const safeType = escapeHtml(normalizedRecommendation.type || 'note');
       const safeCaption = escapeHtml(normalizedRecommendation.caption || 'Concept Query');
@@ -1608,11 +1736,15 @@ function renderAiBoardInsights(data) {
       
       aiAssetsList.appendChild(assetCard);
 
-      assetCard.querySelector('.btn-inject-ai-item').addEventListener('click', () => {
+      const addButton = assetCard.querySelector('.btn-inject-ai-item');
+      if (addedAiSuggestionKeys.has(suggestionKey)) {
+        setAiSuggestionButtonAdded(addButton);
+      }
+
+      addButton.addEventListener('click', () => {
         injectRecommendedItem(normalizedRecommendation);
-        assetCard.querySelector('.btn-inject-ai-item').textContent = 'Added';
-        assetCard.querySelector('.btn-inject-ai-item').disabled = true;
-        assetCard.querySelector('.btn-inject-ai-item').className = 'w-full py-1.5 bg-emerald-100 text-emerald-800 text-[9px] font-bold rounded-lg cursor-not-allowed';
+        addedAiSuggestionKeys.add(suggestionKey);
+        setAiSuggestionButtonAdded(addButton);
       });
     });
   } else {
