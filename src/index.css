@@ -1,4 +1,5 @@
-@import "tailwindcss";
+@import "tailwindcss/theme";
+@import "tailwindcss/utilities";
 
 @custom-variant dark (&:where(.dark, .dark *));
 
@@ -40,6 +41,81 @@ body,
 .draggable-card h5 {
   line-height: 1.08;
   letter-spacing: -0.015em;
+}
+
+/* Keep the old Tailwind Play-CDN glass utilities after moving to the Vite build. */
+.bg-white\/75 {
+  background-color: rgba(255, 255, 255, 0.75) !important;
+}
+
+.bg-white\/70 {
+  background-color: rgba(255, 255, 255, 0.7) !important;
+}
+
+.bg-white\/55 {
+  background-color: rgba(255, 255, 255, 0.55) !important;
+}
+
+.bg-white\/50 {
+  background-color: rgba(255, 255, 255, 0.5) !important;
+}
+
+.bg-white\/45 {
+  background-color: rgba(255, 255, 255, 0.45) !important;
+}
+
+.bg-white\/40 {
+  background-color: rgba(255, 255, 255, 0.4) !important;
+}
+
+.bg-white\/30 {
+  background-color: rgba(255, 255, 255, 0.3) !important;
+}
+
+.site-nav {
+  background: rgba(255, 255, 255, 0.75) !important;
+  color: #5E548E;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.dark .site-nav {
+  background: rgba(30, 27, 46, 0.75) !important;
+}
+
+.site-brand h1 {
+  color: #5E548E !important;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+}
+
+#nav-links button {
+  color: #5E548E !important;
+  background: transparent;
+}
+
+#nav-links button.bg-white {
+  background: #ffffff !important;
+  color: #9F86C0 !important;
+}
+
+.modal-content.glass-card {
+  background: rgba(252, 251, 255, 0.94) !important;
+  border-color: rgba(200, 182, 255, 0.42) !important;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.85) inset,
+    0 18px 48px -18px rgba(94, 84, 142, 0.35) !important;
+}
+
+.draggable-card {
+  background-color: rgba(255, 255, 255, 0.9);
+  border-color: rgba(200, 182, 255, 0.3) !important;
+}
+
+.draggable-card h5 {
+  color: #5E548E;
+  font-size: 0.7rem;
+  text-transform: uppercase;
 }
 
 /* Vite bundle: canvas resize handle (layout polish lives in index.html) */
