@@ -256,6 +256,20 @@ function isImageKeywordQuery(value) {
     !trimmed.startsWith('http');
 }
 
+function isPinterestImageSource(value) {
+  try {
+    const host = new URL(String(value || '').trim()).hostname.toLowerCase();
+    return host === 'pin.it' ||
+      host.endsWith('.pin.it') ||
+      host === 'pinterest.com' ||
+      host.endsWith('.pinterest.com') ||
+      host === 'pinimg.com' ||
+      host.endsWith('.pinimg.com');
+  } catch {
+    return false;
+  }
+}
+
 function refreshResolvedImageForItem(item) {
   if (!item || item.type !== 'image' || item.isEncrypted) return;
   if (isImageKeywordQuery(item.content)) {
@@ -1063,6 +1077,7 @@ function setupItemForm() {
       labelContent.textContent = 'Image Keyword, Image URL, or Pinterest Image Link';
       labelCaption.textContent = 'Aesthetic Photo Tagline / Caption';
       extraCaptionWrap.classList.remove('d-none');
+      updateImageSourceModeUI();
     } else {
       imageUploadWrapper?.classList.add('d-none');
       if (val === 'quote') {
@@ -1086,10 +1101,45 @@ function setupItemForm() {
   const previewImg = document.getElementById('item-image-preview');
   const removeImgBtn = document.getElementById('btn-remove-uploaded-image');
   const contentTextarea = document.getElementById('item-field-content');
+  const imageSourceMode = document.getElementById('item-image-source-mode');
+  const localUploadWrapper = document.getElementById('item-image-local-upload-wrapper');
+  const pinterestWrapper = document.getElementById('item-image-pinterest-wrapper');
+  const pinterestUrlInput = document.getElementById('item-field-pinterest-url');
   const customColorInput = document.getElementById('item-field-custom-color');
   const customColorText = document.getElementById('item-field-custom-color-text');
   const customColorRadio = document.getElementById('item-color-custom-radio');
   const submitBtn = form.querySelector('button[type="submit"]');
+
+  function updateImageSourceModeUI() {
+    const mode = imageSourceMode?.value || 'keyword';
+    localUploadWrapper?.classList.toggle('d-none', mode !== 'upload');
+    pinterestWrapper?.classList.toggle('d-none', mode !== 'pinterest');
+
+    if (mode === 'pinterest') {
+      labelContent.textContent = 'Pinterest Image Link';
+      contentTextarea.placeholder = 'Paste a direct Pinterest image address, e.g. https://i.pinimg.com/...';
+      if (pinterestUrlInput && contentTextarea.value && !pinterestUrlInput.value) {
+        pinterestUrlInput.value = contentTextarea.value;
+      }
+    } else if (mode === 'upload') {
+      labelContent.textContent = 'Uploaded Image URL';
+      contentTextarea.placeholder = 'Upload a local image to fill this automatically';
+    } else {
+      labelContent.textContent = 'Image Keyword or Direct Image URL';
+      contentTextarea.placeholder = 'Type image keywords or paste a direct image URL';
+    }
+  }
+
+  function updateImagePreviewFromContent() {
+    const value = contentTextarea.value.trim();
+    if (typeSelect.value === 'image' && value) {
+      if (previewImg) previewImg.src = resolveImageSource(value);
+      if (previewContainer) previewContainer.classList.remove('d-none');
+    } else {
+      if (previewImg) previewImg.src = '';
+      if (previewContainer) previewContainer.classList.add('d-none');
+    }
+  }
 
   customColorInput?.addEventListener('input', () => {
     setCustomColorSelection(customColorInput.value);
@@ -1102,6 +1152,27 @@ function setupItemForm() {
     } else if (customColorRadio) {
       customColorRadio.checked = true;
     }
+  });
+
+  imageSourceMode?.addEventListener('change', () => {
+    updateImageSourceModeUI();
+    if (imageSourceMode.value === 'pinterest' && pinterestUrlInput) {
+      pinterestUrlInput.value = contentTextarea.value.trim();
+    }
+    updateImagePreviewFromContent();
+  });
+
+  pinterestUrlInput?.addEventListener('input', () => {
+    contentTextarea.value = pinterestUrlInput.value.trim();
+    updateImagePreviewFromContent();
+  });
+
+  contentTextarea?.addEventListener('input', () => {
+    if (typeSelect.value !== 'image') return;
+    if (imageSourceMode?.value === 'pinterest' && pinterestUrlInput) {
+      pinterestUrlInput.value = contentTextarea.value.trim();
+    }
+    updateImagePreviewFromContent();
   });
 
   if (fileInput) {
@@ -1196,9 +1267,13 @@ function setupItemForm() {
   if (removeImgBtn) {
     removeImgBtn.addEventListener('click', () => {
       if (fileInput) fileInput.value = '';
+      if (pinterestUrlInput) pinterestUrlInput.value = '';
       if (previewImg) previewImg.src = '';
       if (previewContainer) previewContainer.classList.add('d-none');
-      if (contentTextarea.value.startsWith('data:image') || contentTextarea.value.startsWith('/data/uploads/') || contentTextarea.value.startsWith('/api/images/')) {
+      if (contentTextarea.value.startsWith('data:image') ||
+        contentTextarea.value.startsWith('/data/uploads/') ||
+        contentTextarea.value.startsWith('/api/images/') ||
+        isPinterestImageSource(contentTextarea.value)) {
         contentTextarea.value = '';
       }
     });
@@ -1213,6 +1288,8 @@ function setupItemForm() {
     selectedItemToEdit = null;
     form.reset();
     document.getElementById('item-field-id').value = '';
+    if (imageSourceMode) imageSourceMode.value = 'keyword';
+    if (pinterestUrlInput) pinterestUrlInput.value = '';
     if (pendingCustomCardColor) {
       setCustomColorSelection(pendingCustomCardColor);
     }
@@ -1230,6 +1307,7 @@ function setupItemForm() {
     if (zSelect) zSelect.value = 'keep';
 
     typeSelect.dispatchEvent(new Event('change'));
+    updateImageSourceModeUI();
     delBtn.classList.add('d-none');
     document.getElementById('itemModalHeaderTitle').textContent = 'Curate A New Card';
     itemModalObj.show();
@@ -1378,6 +1456,24 @@ function openEditCardModal(item) {
 
   document.getElementById('item-field-content').value = valToDisplay;
   document.getElementById('item-field-caption').value = item.caption || '';
+  const imageSourceMode = document.getElementById('item-image-source-mode');
+  const pinterestUrlInput = document.getElementById('item-field-pinterest-url');
+  if (item.type === 'image' && imageSourceMode) {
+    if (isPinterestImageSource(valToDisplay)) {
+      imageSourceMode.value = 'pinterest';
+      if (pinterestUrlInput) pinterestUrlInput.value = valToDisplay || '';
+    } else if (String(valToDisplay || '').startsWith('/api/images/') ||
+      String(valToDisplay || '').startsWith('/api/upload') ||
+      String(valToDisplay || '').startsWith('/data/uploads/') ||
+      String(valToDisplay || '').startsWith('data:image')) {
+      imageSourceMode.value = 'upload';
+      if (pinterestUrlInput) pinterestUrlInput.value = '';
+    } else {
+      imageSourceMode.value = 'keyword';
+      if (pinterestUrlInput) pinterestUrlInput.value = '';
+    }
+    imageSourceMode.dispatchEvent(new Event('change'));
+  }
   
   // Set checked bg preset
   const inputCheck = document.querySelector(`input[name="color-preset"][value="${item.color}"]`);
