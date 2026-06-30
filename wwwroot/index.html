@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Aura Board • Dreamy Gen Z Visual Canvas</title>
+    <title>aura.board • Creative Vision Studio</title>
     
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
@@ -260,9 +260,18 @@
 
       /* Status toast strip */
       .status-banner {
+        position: fixed;
+        top: calc(5.5rem + env(safe-area-inset-top));
+        right: max(1rem, env(safe-area-inset-right));
+        left: auto;
+        width: min(34rem, calc(100vw - 2rem));
+        z-index: 1100;
+        pointer-events: none;
         border-radius: 0.9rem 1.1rem 0.95rem 1.05rem;
         font-size: var(--text-xs);
         line-height: var(--leading-relaxed);
+        box-shadow: 0 12px 32px rgba(94, 84, 142, 0.16);
+        opacity: 0.98;
       }
 
       .status-banner.status-ok {
@@ -393,7 +402,7 @@
       .draggable-card {
         position: absolute;
         cursor: grab;
-        touch-action: none;
+        touch-action: pan-y;
         --card-tilt: 0deg;
         transform: rotate(var(--card-tilt));
         transition: box-shadow 0.18s ease, transform 0.12s ease;
@@ -414,6 +423,18 @@
       }
       .draggable-card.is-dragging {
         z-index: 9999 !important;
+      }
+
+      .draggable-card:not(.custom-color-card),
+      .draggable-card:not(.custom-color-card) .stage-card-body,
+      .draggable-card:not(.custom-color-card) .stage-card-body li,
+      .draggable-card:not(.custom-color-card) .stage-card-body span,
+      .draggable-card:not(.custom-color-card) .stage-card-body p {
+        color: #5E548E;
+      }
+
+      .draggable-card:not(.custom-color-card) .stage-card-body .board-note-check + span {
+        color: rgba(94, 84, 142, 0.88);
       }
 
       .custom-color-card,
@@ -646,6 +667,13 @@
       }
 
       @media (max-width: 767.98px) {
+        .status-banner {
+          top: calc(4.75rem + env(safe-area-inset-top));
+          right: 1rem;
+          left: 1rem;
+          width: auto;
+        }
+
         #main-container {
           width: 100%;
           max-width: 100%;
@@ -933,8 +961,8 @@
         }
       }
     </style>
-    <script type="module" crossorigin src="/assets/index-Bf9PPiib.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-BsCXitnn.css">
+    <script type="module" crossorigin src="/assets/index-C5XHn0kn.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-DmlwA4ON.css">
   </head>
   <body class="font-sans text-[#5E548E] dark:text-[#FFF] relative min-h-screen">
 
@@ -1007,7 +1035,7 @@
     <main class="app-main container relative z-10" id="main-container">
       
       <!-- AUTH FEEDBACK POPUP BANNER (IF SYNC MERGING FAILED) -->
-      <div id="sync-status-banner" class="status-banner mb-4 p-3 rounded-2xl border text-xs font-mono text-[#5E548E] d-none align-items-center gap-2 fade-in-up">
+      <div id="sync-status-banner" class="status-banner p-3 rounded-2xl border text-xs font-mono text-[#5E548E] d-none align-items-center gap-2 fade-in-up">
         <i data-lucide="alert-circle" class="w-4 h-4 text-[#9F86C0]"></i>
         <span id="sync-banner-text">Synchronisation active. Cloud state ready.</span>
       </div>
@@ -1162,7 +1190,12 @@
                     <p class="text-[9px] font-mono mb-0 text-[#9F86C0]">Consult current elements context</p>
                   </div>
                 </div>
-                <button id="close-ai-drawer-btn" type="button" class="p-1 px-2 border hover:bg-[#FFD6E7]/30 text-[#5E548E] text-xs font-mono font-bold rounded-xl cursor-pointer" aria-label="Close AI suggestions">✕</button>
+                <div class="d-flex align-items-center gap-1.5">
+                  <button id="regenerate-ai-suggestions-btn" type="button" class="p-1 px-2 border hover:bg-[#C8B6FF]/20 text-[#5E548E] text-[10px] font-mono font-bold rounded-xl cursor-pointer" aria-label="Regenerate AI suggestions">
+                    Regenerate
+                  </button>
+                  <button id="close-ai-drawer-btn" type="button" class="p-1 px-2 border hover:bg-[#FFD6E7]/30 text-[#5E548E] text-xs font-mono font-bold rounded-xl cursor-pointer" aria-label="Close AI suggestions">✕</button>
+                </div>
               </div>
 
               <!-- Recommendation state container -->
@@ -1601,15 +1634,32 @@
                 <select id="item-field-type" class="form-select rounded-xl border-[#C8B6FF]/45 text-xs text-[#5E548E] font-medium">
                   <option value="note">📝 Action Note Checklist</option>
                   <option value="quote">💬 Inspirational Quote</option>
-                  <option value="image">🖼️ Unsplash Vector Image Query</option>
+                  <option value="image">🖼️ Image Keyword or URL</option>
                   <option value="text">📄 Core Memo Paragraph</option>
                 </select>
               </div>
 
               <!-- Image Upload Section (visible only when type is image) -->
               <div id="item-image-upload-wrapper" class="d-none p-3 rounded-2xl bg-[#F8F7FF] dark:bg-[#1E1B2E] border border-[#C8B6FF]/20 space-y-2 mt-2">
-                <label class="form-label font-bold text-[#5E548E]/80 font-mono text-[10px] uppercase mb-0">Upload Local Image File</label>
-                <input type="file" id="item-field-image-file" class="form-control rounded-xl border-[#C8B6FF]/35 bg-white/50 text-xs py-1.5 text-[#5E548E]" accept="image/*" />
+                <div>
+                  <label class="form-label font-bold text-[#5E548E]/80 font-mono text-[10px] uppercase mb-1">Image Source</label>
+                  <select id="item-image-source-mode" class="form-select rounded-xl border-[#C8B6FF]/35 bg-white/50 text-xs py-1.5 text-[#5E548E]">
+                    <option value="keyword">Keyword or direct image URL</option>
+                    <option value="upload">Upload local file</option>
+                    <option value="pinterest">Pinterest image link</option>
+                  </select>
+                </div>
+
+                <div id="item-image-pinterest-wrapper" class="d-none space-y-1.5">
+                  <label class="form-label font-bold text-[#5E548E]/80 font-mono text-[10px] uppercase mb-0">Pinterest Image Link</label>
+                  <input type="url" id="item-field-pinterest-url" class="form-control rounded-xl border-[#C8B6FF]/35 bg-white/50 text-xs py-1.5 text-[#5E548E]" placeholder="Paste a Pinterest image address, e.g. https://i.pinimg.com/..." />
+                  <p class="text-[10px] text-[#9F86C0] mb-0 leading-relaxed">Use a direct Pinterest image address when possible. Regular pin pages may show the fallback preview.</p>
+                </div>
+
+                <div id="item-image-local-upload-wrapper" class="space-y-1.5">
+                  <label class="form-label font-bold text-[#5E548E]/80 font-mono text-[10px] uppercase mb-0">Upload Local Image File</label>
+                  <input type="file" id="item-field-image-file" class="form-control rounded-xl border-[#C8B6FF]/35 bg-white/50 text-xs py-1.5 text-[#5E548E]" accept="image/*" />
+                </div>
                 
                 <!-- Uploading Status & Preview -->
                 <div id="item-image-upload-status" class="text-[10px] text-[#9F86C0] font-mono d-none align-items-center gap-1.5 mt-1">
@@ -1625,7 +1675,7 @@
 
               <div class="mt-2">
                 <label class="form-label font-bold text-[#5E548E]/80 font-mono text-[10px] uppercase" id="item-label-content">Card Content / Image Keyword</label>
-                <textarea id="item-field-content" class="form-control rounded-xl text-xs border-[#C8B6FF]/45 text-[#5E548E]" rows="3" placeholder="Write text details or type image keyword e.g. ocean beach morning sunset" required></textarea>
+                <textarea id="item-field-content" class="form-control rounded-xl text-xs border-[#C8B6FF]/45 text-[#5E548E]" rows="3" placeholder="Write text details, image keywords, an image URL, or a Pinterest image link" required></textarea>
               </div>
 
               <!-- Extra caption/author if image/quote -->
