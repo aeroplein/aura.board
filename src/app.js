@@ -284,10 +284,11 @@ async function anchorImageContentIfNeeded(rawContent) {
   if (!isImageKeywordQuery(content)) return content;
 
   try {
-    const resolvedSearchUrl = resolvedImageCache.get(content) || resolveImageSource(content);
-    const response = await fetch(resolvedSearchUrl);
-    const anchoredUrl = response?.url || '';
-    if (response.ok && anchoredUrl && !anchoredUrl.includes('/api/images/search')) {
+    const sig = `${Date.now()}-${Math.floor(Math.random() * 100000)}`;
+    const response = await fetchWithCredentials(`/api/images/search?query=${encodeURIComponent(content)}&sig=${encodeURIComponent(sig)}&format=json`);
+    const data = await parseJsonResponse(response, 'Image search returned an unexpected response.');
+    const anchoredUrl = data?.url || '';
+    if (response.ok && anchoredUrl) {
       resolvedImageCache.delete(content);
       resolvedImageCache.set(anchoredUrl, anchoredUrl);
       return anchoredUrl;
@@ -297,6 +298,12 @@ async function anchorImageContentIfNeeded(rawContent) {
   }
 
   return content;
+}
+
+function getPreviewImageSource(rawContent) {
+  const content = String(rawContent || '').trim();
+  if (!content) return '';
+  return resolvedImageCache.get(content) || resolveImageSource(content);
 }
 
 window.handleImageLoadError = function handleImageLoadError(img) {
@@ -1153,7 +1160,7 @@ function setupItemForm() {
   function updateImagePreviewFromContent() {
     const value = contentTextarea.value.trim();
     if (typeSelect.value === 'image' && value) {
-      if (previewImg) previewImg.src = resolveImageSource(value);
+      if (previewImg) previewImg.src = getPreviewImageSource(value);
       if (previewContainer) previewContainer.classList.remove('d-none');
     } else {
       if (previewImg) previewImg.src = '';
@@ -1335,6 +1342,8 @@ function setupItemForm() {
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
+    if (submitBtn) submitBtn.disabled = true;
+
     const itemId = document.getElementById('item-field-id').value;
     const title = document.getElementById('item-field-title').value;
     const type = normalizeBoardItemType(typeSelect.value);
@@ -1344,11 +1353,18 @@ function setupItemForm() {
     const zAction = document.getElementById('item-field-z-index').value;
 
     const bIndex = boards.findIndex(b => b.id === currentBoardId);
-    if (bIndex === -1) return;
+    if (bIndex === -1) {
+      if (submitBtn) submitBtn.disabled = false;
+      return;
+    }
 
-    if (type === 'image') {
-      content = await anchorImageContentIfNeeded(content);
-      document.getElementById('item-field-content').value = content;
+    try {
+      if (type === 'image') {
+        content = await anchorImageContentIfNeeded(content);
+        document.getElementById('item-field-content').value = content;
+      }
+    } finally {
+      if (submitBtn) submitBtn.disabled = false;
     }
 
     // Apply reversible local obfuscation prior to saving.
@@ -1523,7 +1539,7 @@ function openEditCardModal(item) {
   }
 
   if (item.type === 'image' && valToDisplay) {
-    if (previewImg) previewImg.src = resolveImageSource(valToDisplay);
+    if (previewImg) previewImg.src = getPreviewImageSource(valToDisplay);
     if (previewContainer) previewContainer.classList.remove('d-none');
   } else {
     if (previewContainer) previewContainer.classList.add('d-none');
