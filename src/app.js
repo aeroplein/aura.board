@@ -256,6 +256,20 @@ function isImageKeywordQuery(value) {
     !trimmed.startsWith('http');
 }
 
+function isPinterestImageSource(value) {
+  try {
+    const host = new URL(String(value || '').trim()).hostname.toLowerCase();
+    return host === 'pin.it' ||
+      host.endsWith('.pin.it') ||
+      host === 'pinterest.com' ||
+      host.endsWith('.pinterest.com') ||
+      host === 'pinimg.com' ||
+      host.endsWith('.pinimg.com');
+  } catch {
+    return false;
+  }
+}
+
 function refreshResolvedImageForItem(item) {
   if (!item || item.type !== 'image' || item.isEncrypted) return;
   if (isImageKeywordQuery(item.content)) {
@@ -263,6 +277,26 @@ function refreshResolvedImageForItem(item) {
   } else {
     resolvedImageCache.delete(item.content);
   }
+}
+
+async function anchorImageContentIfNeeded(rawContent) {
+  const content = String(rawContent || '').trim();
+  if (!isImageKeywordQuery(content)) return content;
+
+  try {
+    const resolvedSearchUrl = resolvedImageCache.get(content) || resolveImageSource(content);
+    const response = await fetch(resolvedSearchUrl);
+    const anchoredUrl = response?.url || '';
+    if (response.ok && anchoredUrl && !anchoredUrl.includes('/api/images/search')) {
+      resolvedImageCache.delete(content);
+      resolvedImageCache.set(anchoredUrl, anchoredUrl);
+      return anchoredUrl;
+    }
+  } catch (error) {
+    console.warn('Image keyword could not be anchored; keeping keyword fallback.', error);
+  }
+
+  return content;
 }
 
 window.handleImageLoadError = function handleImageLoadError(img) {
@@ -1063,6 +1097,7 @@ function setupItemForm() {
       labelContent.textContent = 'Image Keyword, Image URL, or Pinterest Image Link';
       labelCaption.textContent = 'Aesthetic Photo Tagline / Caption';
       extraCaptionWrap.classList.remove('d-none');
+      updateImageSourceModeUI();
     } else {
       imageUploadWrapper?.classList.add('d-none');
       if (val === 'quote') {
@@ -1086,10 +1121,45 @@ function setupItemForm() {
   const previewImg = document.getElementById('item-image-preview');
   const removeImgBtn = document.getElementById('btn-remove-uploaded-image');
   const contentTextarea = document.getElementById('item-field-content');
+  const imageSourceMode = document.getElementById('item-image-source-mode');
+  const localUploadWrapper = document.getElementById('item-image-local-upload-wrapper');
+  const pinterestWrapper = document.getElementById('item-image-pinterest-wrapper');
+  const pinterestUrlInput = document.getElementById('item-field-pinterest-url');
   const customColorInput = document.getElementById('item-field-custom-color');
   const customColorText = document.getElementById('item-field-custom-color-text');
   const customColorRadio = document.getElementById('item-color-custom-radio');
   const submitBtn = form.querySelector('button[type="submit"]');
+
+  function updateImageSourceModeUI() {
+    const mode = imageSourceMode?.value || 'keyword';
+    localUploadWrapper?.classList.toggle('d-none', mode !== 'upload');
+    pinterestWrapper?.classList.toggle('d-none', mode !== 'pinterest');
+
+    if (mode === 'pinterest') {
+      labelContent.textContent = 'Pinterest Image Link';
+      contentTextarea.placeholder = 'Paste a direct Pinterest image address, e.g. https://i.pinimg.com/...';
+      if (pinterestUrlInput && contentTextarea.value && !pinterestUrlInput.value) {
+        pinterestUrlInput.value = contentTextarea.value;
+      }
+    } else if (mode === 'upload') {
+      labelContent.textContent = 'Uploaded Image URL';
+      contentTextarea.placeholder = 'Upload a local image to fill this automatically';
+    } else {
+      labelContent.textContent = 'Image Keyword or Direct Image URL';
+      contentTextarea.placeholder = 'Type image keywords or paste a direct image URL';
+    }
+  }
+
+  function updateImagePreviewFromContent() {
+    const value = contentTextarea.value.trim();
+    if (typeSelect.value === 'image' && value) {
+      if (previewImg) previewImg.src = resolveImageSource(value);
+      if (previewContainer) previewContainer.classList.remove('d-none');
+    } else {
+      if (previewImg) previewImg.src = '';
+      if (previewContainer) previewContainer.classList.add('d-none');
+    }
+  }
 
   customColorInput?.addEventListener('input', () => {
     setCustomColorSelection(customColorInput.value);
@@ -1102,6 +1172,27 @@ function setupItemForm() {
     } else if (customColorRadio) {
       customColorRadio.checked = true;
     }
+  });
+
+  imageSourceMode?.addEventListener('change', () => {
+    updateImageSourceModeUI();
+    if (imageSourceMode.value === 'pinterest' && pinterestUrlInput) {
+      pinterestUrlInput.value = contentTextarea.value.trim();
+    }
+    updateImagePreviewFromContent();
+  });
+
+  pinterestUrlInput?.addEventListener('input', () => {
+    contentTextarea.value = pinterestUrlInput.value.trim();
+    updateImagePreviewFromContent();
+  });
+
+  contentTextarea?.addEventListener('input', () => {
+    if (typeSelect.value !== 'image') return;
+    if (imageSourceMode?.value === 'pinterest' && pinterestUrlInput) {
+      pinterestUrlInput.value = contentTextarea.value.trim();
+    }
+    updateImagePreviewFromContent();
   });
 
   if (fileInput) {
@@ -1196,9 +1287,13 @@ function setupItemForm() {
   if (removeImgBtn) {
     removeImgBtn.addEventListener('click', () => {
       if (fileInput) fileInput.value = '';
+      if (pinterestUrlInput) pinterestUrlInput.value = '';
       if (previewImg) previewImg.src = '';
       if (previewContainer) previewContainer.classList.add('d-none');
-      if (contentTextarea.value.startsWith('data:image') || contentTextarea.value.startsWith('/data/uploads/') || contentTextarea.value.startsWith('/api/images/')) {
+      if (contentTextarea.value.startsWith('data:image') ||
+        contentTextarea.value.startsWith('/data/uploads/') ||
+        contentTextarea.value.startsWith('/api/images/') ||
+        isPinterestImageSource(contentTextarea.value)) {
         contentTextarea.value = '';
       }
     });
@@ -1213,6 +1308,8 @@ function setupItemForm() {
     selectedItemToEdit = null;
     form.reset();
     document.getElementById('item-field-id').value = '';
+    if (imageSourceMode) imageSourceMode.value = 'keyword';
+    if (pinterestUrlInput) pinterestUrlInput.value = '';
     if (pendingCustomCardColor) {
       setCustomColorSelection(pendingCustomCardColor);
     }
@@ -1230,12 +1327,13 @@ function setupItemForm() {
     if (zSelect) zSelect.value = 'keep';
 
     typeSelect.dispatchEvent(new Event('change'));
+    updateImageSourceModeUI();
     delBtn.classList.add('d-none');
     document.getElementById('itemModalHeaderTitle').textContent = 'Curate A New Card';
     itemModalObj.show();
   });
 
-  form.addEventListener('submit', (e) => {
+  form.addEventListener('submit', async (e) => {
     e.preventDefault();
     const itemId = document.getElementById('item-field-id').value;
     const title = document.getElementById('item-field-title').value;
@@ -1247,6 +1345,11 @@ function setupItemForm() {
 
     const bIndex = boards.findIndex(b => b.id === currentBoardId);
     if (bIndex === -1) return;
+
+    if (type === 'image') {
+      content = await anchorImageContentIfNeeded(content);
+      document.getElementById('item-field-content').value = content;
+    }
 
     // Apply reversible local obfuscation prior to saving.
     if (isSecureChecked) {
@@ -1378,6 +1481,24 @@ function openEditCardModal(item) {
 
   document.getElementById('item-field-content').value = valToDisplay;
   document.getElementById('item-field-caption').value = item.caption || '';
+  const imageSourceMode = document.getElementById('item-image-source-mode');
+  const pinterestUrlInput = document.getElementById('item-field-pinterest-url');
+  if (item.type === 'image' && imageSourceMode) {
+    if (isPinterestImageSource(valToDisplay)) {
+      imageSourceMode.value = 'pinterest';
+      if (pinterestUrlInput) pinterestUrlInput.value = valToDisplay || '';
+    } else if (String(valToDisplay || '').startsWith('/api/images/') ||
+      String(valToDisplay || '').startsWith('/api/upload') ||
+      String(valToDisplay || '').startsWith('/data/uploads/') ||
+      String(valToDisplay || '').startsWith('data:image')) {
+      imageSourceMode.value = 'upload';
+      if (pinterestUrlInput) pinterestUrlInput.value = '';
+    } else {
+      imageSourceMode.value = 'keyword';
+      if (pinterestUrlInput) pinterestUrlInput.value = '';
+    }
+    imageSourceMode.dispatchEvent(new Event('change'));
+  }
   
   // Set checked bg preset
   const inputCheck = document.querySelector(`input[name="color-preset"][value="${item.color}"]`);
@@ -1741,8 +1862,8 @@ function renderAiBoardInsights(data) {
         setAiSuggestionButtonAdded(addButton);
       }
 
-      addButton.addEventListener('click', () => {
-        injectRecommendedItem(normalizedRecommendation);
+      addButton.addEventListener('click', async () => {
+        await injectRecommendedItem(normalizedRecommendation);
         addedAiSuggestionKeys.add(suggestionKey);
         setAiSuggestionButtonAdded(addButton);
       });
@@ -1758,7 +1879,7 @@ function renderAiBoardInsights(data) {
   lucide.createIcons();
 }
 
-function injectRecommendedItem(item) {
+async function injectRecommendedItem(item) {
   const bIndex = boards.findIndex(b => b.id === currentBoardId);
   if (bIndex === -1) return;
 
@@ -1772,7 +1893,9 @@ function injectRecommendedItem(item) {
     id: freshId,
     title: normalizedItem.title,
     type: normalizedItem.type,
-    content: normalizedItem.content,
+    content: normalizedItem.type === 'image'
+      ? await anchorImageContentIfNeeded(normalizedItem.content)
+      : normalizedItem.content,
     caption: normalizedItem.caption || '',
     color: normalizedItem.color || 'bg-white border-[#C8B6FF]/30 text-[#5E548E]',
     x: Math.round(20 + Math.random() * 40),
@@ -2005,7 +2128,7 @@ function setupGalleryHandlers() {
   }
 
   // Push integration into Selected Board
-  document.getElementById('btn-gallery-push-all').addEventListener('click', () => {
+  document.getElementById('btn-gallery-push-all').addEventListener('click', async () => {
     if (!activeGalleryResult) {
       showSyncBanner('No elements available to push. Please generate inspiration first.', true);
       return;
@@ -2030,13 +2153,15 @@ function setupGalleryHandlers() {
       return;
     }
 
-    items.forEach((normalizedItem, idx) => {
+    for (const [idx, normalizedItem] of items.entries()) {
       const freshId = `gallery-item-${Date.now()}-${idx}`;
       const newItem = {
         id: freshId,
         title: normalizedItem.title,
         type: normalizedItem.type,
-        content: normalizedItem.content,
+        content: normalizedItem.type === 'image'
+          ? await anchorImageContentIfNeeded(normalizedItem.content)
+          : normalizedItem.content,
         caption: normalizedItem.caption || '',
         color: normalizedItem.color || 'bg-white border-[#C8B6FF]/30 text-[#5E548E]',
         x: Math.round(15 + Math.random() * 50),
@@ -2052,7 +2177,7 @@ function setupGalleryHandlers() {
 
       // Save position item
       processSyncAction('upsert_item', bId, freshId, newItem);
-    });
+    }
 
     showSyncBanner(`Injected ${items.length} elements to your "${boards[bIndex].title}" board!`, false);
     enterBoardStudio(bId);

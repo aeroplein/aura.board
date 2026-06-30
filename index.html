@@ -1612,8 +1612,25 @@
 
               <!-- Image Upload Section (visible only when type is image) -->
               <div id="item-image-upload-wrapper" class="d-none p-3 rounded-2xl bg-[#F8F7FF] dark:bg-[#1E1B2E] border border-[#C8B6FF]/20 space-y-2 mt-2">
-                <label class="form-label font-bold text-[#5E548E]/80 font-mono text-[10px] uppercase mb-0">Upload Local Image File</label>
-                <input type="file" id="item-field-image-file" class="form-control rounded-xl border-[#C8B6FF]/35 bg-white/50 text-xs py-1.5 text-[#5E548E]" accept="image/*" />
+                <div>
+                  <label class="form-label font-bold text-[#5E548E]/80 font-mono text-[10px] uppercase mb-1">Image Source</label>
+                  <select id="item-image-source-mode" class="form-select rounded-xl border-[#C8B6FF]/35 bg-white/50 text-xs py-1.5 text-[#5E548E]">
+                    <option value="keyword">Keyword or direct image URL</option>
+                    <option value="upload">Upload local file</option>
+                    <option value="pinterest">Pinterest image link</option>
+                  </select>
+                </div>
+
+                <div id="item-image-pinterest-wrapper" class="d-none space-y-1.5">
+                  <label class="form-label font-bold text-[#5E548E]/80 font-mono text-[10px] uppercase mb-0">Pinterest Image Link</label>
+                  <input type="url" id="item-field-pinterest-url" class="form-control rounded-xl border-[#C8B6FF]/35 bg-white/50 text-xs py-1.5 text-[#5E548E]" placeholder="Paste a Pinterest image address, e.g. https://i.pinimg.com/..." />
+                  <p class="text-[10px] text-[#9F86C0] mb-0 leading-relaxed">Use a direct Pinterest image address when possible. Regular pin pages may show the fallback preview.</p>
+                </div>
+
+                <div id="item-image-local-upload-wrapper" class="space-y-1.5">
+                  <label class="form-label font-bold text-[#5E548E]/80 font-mono text-[10px] uppercase mb-0">Upload Local Image File</label>
+                  <input type="file" id="item-field-image-file" class="form-control rounded-xl border-[#C8B6FF]/35 bg-white/50 text-xs py-1.5 text-[#5E548E]" accept="image/*" />
+                </div>
                 
                 <!-- Uploading Status & Preview -->
                 <div id="item-image-upload-status" class="text-[10px] text-[#9F86C0] font-mono d-none align-items-center gap-1.5 mt-1">
