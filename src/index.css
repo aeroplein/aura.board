@@ -107,6 +107,19 @@ body,
     0 18px 48px -18px rgba(94, 84, 142, 0.35) !important;
 }
 
+.auth-alert {
+  background: rgba(255, 246, 249, 0.94);
+  border: 1px solid rgba(255, 214, 231, 0.95);
+  color: #7c4a6a;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+#auth-form .auth-field-invalid {
+  border-color: rgba(220, 83, 125, 0.75) !important;
+  box-shadow: 0 0 0 3px rgba(255, 214, 231, 0.72) !important;
+}
+
 .draggable-card {
   background-color: rgba(255, 255, 255, 0.9);
   border-color: rgba(200, 182, 255, 0.3) !important;

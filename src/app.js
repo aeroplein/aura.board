@@ -346,6 +346,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Attach UI event listeners
   setupNavTriggers();
+  setupAuthValidationGuard();
   setupAuthForm();
   setupBoardForm();
   setupItemForm();
@@ -1374,6 +1375,71 @@ function showSyncBanner(msg, isError) {
 }
 
 // 10. AUTH FLOW BACKEND REQUESTS
+function setupAuthValidationGuard() {
+  const form = document.getElementById('auth-form');
+  const alert = document.getElementById('auth-alert');
+  if (!form || !alert) return;
+
+  form.noValidate = true;
+
+  form.addEventListener('input', (event) => {
+    event.target?.classList?.remove('auth-field-invalid');
+    if (!form.querySelector('.auth-field-invalid')) {
+      alert.classList.add('d-none');
+    }
+  });
+
+  form.addEventListener('submit', (event) => {
+    clearAuthFieldErrors(form);
+    alert.classList.add('d-none');
+
+    const invalidState = getAuthValidationState();
+    if (!invalidState) return;
+
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    showAuthValidationMessage(alert, invalidState.message);
+    invalidState.input?.classList.add('auth-field-invalid');
+    invalidState.input?.focus();
+  }, true);
+}
+
+function getAuthValidationState() {
+  const nameInput = document.getElementById('auth-input-name');
+  const emailInput = document.getElementById('auth-input-email');
+  const passwordInput = document.getElementById('auth-input-password');
+  const isRegisterMode = !document.getElementById('group-auth-name')?.classList.contains('d-none');
+
+  if (isRegisterMode && !nameInput?.value.trim()) {
+    return { input: nameInput, message: 'Add your name to create the workspace.' };
+  }
+
+  if (!emailInput?.value.trim()) {
+    return { input: emailInput, message: 'Enter your email address to continue.' };
+  }
+
+  if (!emailInput.checkValidity()) {
+    return { input: emailInput, message: 'Enter a valid email address.' };
+  }
+
+  if (!passwordInput?.value) {
+    return { input: passwordInput, message: 'Enter your Aura Passkey to continue.' };
+  }
+
+  return null;
+}
+
+function clearAuthFieldErrors(form) {
+  form.querySelectorAll('.auth-field-invalid').forEach(input => {
+    input.classList.remove('auth-field-invalid');
+  });
+}
+
+function showAuthValidationMessage(alert, message) {
+  alert.textContent = message;
+  alert.classList.remove('d-none');
+}
+
 function setupAuthForm() {
   setupAuthFormFeature({
     fetchWithCredentials,
