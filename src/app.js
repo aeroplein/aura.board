@@ -1,4 +1,3 @@
-import { jsPDF } from 'jspdf';
 import './index.css';
 import {
   handleLogout as handleLogoutFeature,
@@ -15,7 +14,7 @@ import {
 } from './features/boards.js';
 import { startCollaborationTicker as startCollaborationTickerFeature } from './features/collaboration.js';
 import { processSyncAction as processSyncActionFeature, showSyncBanner as showSyncBannerFeature } from './features/sync.js';
-import { fetchWithCredentials } from './services/apiClient.js';
+import { fetchWithCredentials, parseJsonResponse } from './services/apiClient.js';
 import { showTab as showTabView, setupNavTriggers as setupNavigationTriggers } from './ui/navigation.js';
 import { setupSearchHandlers as setupBoardSearchHandlers } from './ui/search.js';
 import { renderUserSettings as renderUserSettingsView, setupSettingsHandlers as setupPreferenceHandlers } from './ui/settings.js';
@@ -103,8 +102,25 @@ function getQuoteParts(content, caption) {
 }
 
 function normalizeGeneratedItemForCanvas(item) {
+  if (!item || typeof item !== 'object') {
+    return null;
+  }
+
   const normalizedType = normalizeBoardItemType(item?.type);
-  const normalized = { ...item, type: normalizedType };
+  const normalized = {
+    ...item,
+    type: normalizedType,
+    title: String(item.title || 'Generated idea').trim().slice(0, 120),
+    content: String(item.content || '').trim().slice(0, 4000),
+    caption: String(item.caption || '').trim().slice(0, 500),
+    color: String(item.color || '').trim().slice(0, 200),
+    width: Math.min(Math.max(Number(item.width) || 25, 5), 100),
+    height: Math.min(Math.max(Number(item.height) || 22, 5), 100)
+  };
+
+  if (!normalized.content && normalizedType !== 'image') {
+    return null;
+  }
 
   if (normalizedType === 'note') {
     normalized.content = normalizeChecklistContent(normalized.content);
@@ -117,6 +133,12 @@ function normalizeGeneratedItemForCanvas(item) {
   }
 
   return normalized;
+}
+
+function getValidatedGeneratedItems(items) {
+  return (Array.isArray(items) ? items : [])
+    .map(normalizeGeneratedItemForCanvas)
+    .filter(Boolean);
 }
 
 function normalizeHexColor(value) {
@@ -261,6 +283,43 @@ let elementStartX = 0;
 let elementStartY = 0;
 let activeCanvasOffsetWidth = 1000;
 let activeCanvasOffsetHeight = 580;
+const CARD_WIDTH_UNIT = 8;
+const CARD_HEIGHT_UNIT = 7;
+const CANVAS_EDGE_GAP = 10;
+
+function getCanvasPixelBounds() {
+  const container = document.getElementById('canvas-area-wrapper');
+  return {
+    width: container?.clientWidth || activeCanvasOffsetWidth,
+    height: container?.clientHeight || activeCanvasOffsetHeight
+  };
+}
+
+function getRenderedCardSize(item, canvasWidth, canvasHeight) {
+  const baseWidth = item.width ? item.width * CARD_WIDTH_UNIT : 200;
+  const baseHeight = item.height ? item.height * CARD_HEIGHT_UNIT : 140;
+  const maxWidth = Math.max(120, canvasWidth - (CANVAS_EDGE_GAP * 2));
+  const maxHeight = Math.max(90, canvasHeight - (CANVAS_EDGE_GAP * 2));
+
+  return {
+    width: Math.min(baseWidth, maxWidth),
+    height: Math.min(baseHeight, maxHeight)
+  };
+}
+
+function getClampedCardPosition(item, renderedSize, canvasWidth, canvasHeight) {
+  const rawLeft = (Number(item.x) || 0) / 100 * canvasWidth;
+  const rawTop = (Number(item.y) || 0) / 100 * canvasHeight;
+  const maxLeft = Math.max(CANVAS_EDGE_GAP, canvasWidth - renderedSize.width - CANVAS_EDGE_GAP);
+  const maxTop = Math.max(CANVAS_EDGE_GAP, canvasHeight - renderedSize.height - CANVAS_EDGE_GAP);
+  const left = Math.max(CANVAS_EDGE_GAP, Math.min(rawLeft, maxLeft));
+  const top = Math.max(CANVAS_EDGE_GAP, Math.min(rawTop, maxTop));
+
+  return {
+    leftPercent: (left / canvasWidth) * 100,
+    topPercent: (top / canvasHeight) * 100
+  };
+}
 
 // Access bootstrap modals
 let authModalObj = null;
@@ -444,6 +503,7 @@ function refreshStudioDisplay() {
   }
 
   noElementsBanner.classList.add('d-none');
+  const canvasBounds = getCanvasPixelBounds();
 
   // Render cards absolute positions using viewport percentages scaled to bounds
   b.items.forEach(it => {
@@ -459,14 +519,16 @@ function refreshStudioDisplay() {
     cardEl.style.setProperty('--card-tilt', `${cardTilt}deg`);
     
     // Scale percentages to layout coordinates
-    cardEl.style.left = `${it.x}%`;
-    cardEl.style.top = `${it.y}%`;
-    cardEl.style.width = it.width ? `${it.width * 8}px` : '200px';
-    cardEl.style.minHeight = it.height ? `${it.height * 7}px` : '140px';
+    const renderedSize = getRenderedCardSize(it, canvasBounds.width, canvasBounds.height);
+    const renderedPosition = getClampedCardPosition(it, renderedSize, canvasBounds.width, canvasBounds.height);
+    cardEl.style.left = `${renderedPosition.leftPercent.toFixed(2)}%`;
+    cardEl.style.top = `${renderedPosition.topPercent.toFixed(2)}%`;
+    cardEl.style.width = `${renderedSize.width}px`;
+    cardEl.style.minHeight = `${renderedSize.height}px`;
     cardEl.style.zIndex = it.zIndex || 10;
     cardEl.setAttribute('data-id', it.id);
 
-    // Cryptographic indicator check
+    // Local reversible obfuscation indicator check
     const isEncrypted = it.isEncrypted || it.content?.startsWith('shield_v15_');
     const revealedPayload = isEncrypted ? decryptText(it.content) : it.content;
     const safeTitle = escapeHtml(it.title || 'Untitled element');
@@ -513,7 +575,7 @@ function refreshStudioDisplay() {
               ${safeType}
             </span>
             <div class="d-flex gap-1">
-              ${isEncrypted ? '<i data-lucide="lock" class="w-3.5 h-3.5 text-emerald-500" title="Shielded locally"></i>' : ''}
+              ${isEncrypted ? '<i data-lucide="lock" class="w-3.5 h-3.5 text-emerald-500" title="Obfuscated locally"></i>' : ''}
               <button type="button" class="p-0.5 border-0 hover:bg-[#C8B6FF]/20 text-[#5E548E] rounded btn-card-edit-action" data-id="${it.id}" aria-label="Edit ${safeTitle}">
                 <i data-lucide="edit-3" class="w-3 h-3"></i>
               </button>
@@ -526,7 +588,7 @@ function refreshStudioDisplay() {
         <div class="text-[8px] font-mono text-dusty uppercase pt-2 flex items-center justify-between select-none flex-shrink-0" style="flex-shrink: 0; width: 100%;">
           <div class="flex items-center gap-1.5">
             <i data-lucide="move" class="w-3 h-3"></i>
-            <span class="card-size-indicator text-[8px] font-mono text-dusty lowercase d-none">${it.width ? it.width * 8 : 200}x${it.height ? it.height * 7 : 140}px</span>
+            <span class="card-size-indicator text-[8px] font-mono text-dusty lowercase d-none">${Math.round(renderedSize.width)}x${Math.round(renderedSize.height)}px</span>
           </div>
           <div class="d-flex items-center gap-1">
             <button type="button" class="p-0.5 border-0 hover:bg-[#C8B6FF]/20 text-[#5E548E] rounded btn-card-send-back" data-id="${it.id}" title="Send to Back" aria-label="Send ${safeTitle} to back" style="cursor: pointer;">
@@ -722,11 +784,11 @@ function attachCardDragEvents(el) {
     let targetTopY = elementStartY + dy;
 
     // Stay inside stage margins boundary checks
-    const maxLeftX = activeCanvasOffsetWidth - el.offsetWidth - 20;
-    const maxTopY = activeCanvasOffsetHeight - el.offsetHeight - 20;
+    const maxLeftX = Math.max(CANVAS_EDGE_GAP, activeCanvasOffsetWidth - el.offsetWidth - CANVAS_EDGE_GAP);
+    const maxTopY = Math.max(CANVAS_EDGE_GAP, activeCanvasOffsetHeight - el.offsetHeight - CANVAS_EDGE_GAP);
 
-    targetLeftX = Math.max(10, Math.min(targetLeftX, maxLeftX));
-    targetTopY = Math.max(10, Math.min(targetTopY, maxTopY));
+    targetLeftX = Math.max(CANVAS_EDGE_GAP, Math.min(targetLeftX, maxLeftX));
+    targetTopY = Math.max(CANVAS_EDGE_GAP, Math.min(targetTopY, maxTopY));
 
     // Convert pixels delta coordinates to percentage ratios dynamically
     const percentX = (targetLeftX / activeCanvasOffsetWidth) * 100;
@@ -869,15 +931,15 @@ function attachCardResizeEvents(el) {
       isResizing = false;
 
       // Convert pixels to database coordinates (Width / 8, Height / 7)
-      const dbWidth = Math.round(el.offsetWidth / 8);
-      const dbHeight = Math.round(el.offsetHeight / 7);
+      const dbWidth = Math.round(el.offsetWidth / CARD_WIDTH_UNIT);
+      const dbHeight = Math.round(el.offsetHeight / CARD_HEIGHT_UNIT);
 
       updateBoardItemSize(itemId, dbWidth, dbHeight);
 
       // Snap the visual size text
       const sizeIndicator = el.querySelector('.card-size-indicator');
       if (sizeIndicator) {
-        sizeIndicator.textContent = `${dbWidth * 8}x${dbHeight * 7}px`;
+        sizeIndicator.textContent = `${dbWidth * CARD_WIDTH_UNIT}x${dbHeight * CARD_HEIGHT_UNIT}px`;
         sizeIndicator.classList.add('d-none');
       }
     }
@@ -982,10 +1044,17 @@ function setupItemForm() {
     fileInput.addEventListener('change', async (e) => {
       const file = e.target.files[0];
       if (!file) return;
+      const supportedImageTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+
+      if (!supportedImageTypes.includes(file.type)) {
+        showSyncBanner('Only JPG, PNG, WebP, and GIF images are supported.', true);
+        fileInput.value = '';
+        return;
+      }
 
       // 15MB limit check
       if (file.size > 15 * 1024 * 1024) {
-        showSyncBanner('Image exceeds 15MB limit.', true);
+        showSyncBanner('Image exceeds the 15MB upload limit. Choose a smaller image.', true);
         fileInput.value = '';
         return;
       }
@@ -1017,9 +1086,9 @@ function setupItemForm() {
               fileName: file.name
             })
           });
+          const data = await parseJsonResponse(res, 'Upload failed on server.');
 
           if (res.ok) {
-            const data = await res.json();
             if (data.url) {
               contentTextarea.value = data.url;
               if (previewImg) previewImg.src = data.url;
@@ -1029,14 +1098,14 @@ function setupItemForm() {
               throw new Error('No url returned from server');
             }
           } else {
-            throw new Error('Upload failed on server');
+            throw new Error(data?.error || 'Upload failed on server');
           }
         } catch (err) {
           // Fallback to local base64 on failure or offline
           contentTextarea.value = base64Data;
           if (previewImg) previewImg.src = base64Data;
           if (previewContainer) previewContainer.classList.remove('d-none');
-          showSyncBanner('Offline/server sync failed: using local image payload fallback.', true);
+          showSyncBanner(`${err.message || 'Image upload failed.'} Using a session-local image payload fallback.`, true);
         } finally {
           // Hide status spinner, re-enable form submit
           if (uploadStatus) {
@@ -1115,7 +1184,7 @@ function setupItemForm() {
     const bIndex = boards.findIndex(b => b.id === currentBoardId);
     if (bIndex === -1) return;
 
-    // Apply shield obfuscation prior to saving
+    // Apply reversible local obfuscation prior to saving.
     if (isSecureChecked) {
       content = encryptText(content, currentUser.id);
     }
@@ -1363,11 +1432,11 @@ document.getElementById('studio-ai-recommender-btn').addEventListener('click', a
       })
     });
 
-    const data = await res.json();
+    const data = await parseJsonResponse(res, 'AI suggestions are unavailable right now.');
     if (res.ok) {
       renderAiBoardInsights(data);
     } else {
-      throw new Error(data.error || 'AI suggestions are unavailable right now.');
+      throw new Error(data?.error || 'AI suggestions are unavailable right now.');
     }
   } catch (err) {
     console.warn('AI recommendations unavailable; using local fallback suggestions.', err);
@@ -1439,9 +1508,9 @@ function renderAiBoardInsights(data) {
 
   // Recommended new elements lists
   aiAssetsList.innerHTML = '';
-  if (data.recommendedItems && data.recommendedItems.length > 0) {
-    data.recommendedItems.forEach((rm, idx) => {
-      const normalizedRecommendation = normalizeGeneratedItemForCanvas(rm);
+  const recommendedItems = getValidatedGeneratedItems(data.recommendedItems);
+  if (recommendedItems.length > 0) {
+    recommendedItems.forEach((normalizedRecommendation, idx) => {
       const assetCard = document.createElement('div');
       assetCard.className = "p-2.5 rounded-xl border border-[#C8B6FF]/30 bg-white/70 text-xs text-[#5E548E] space-y-2 card-ai-suggestion shadow-xs";
       const safeTitle = escapeHtml(normalizedRecommendation.title || 'Suggested element');
@@ -1496,6 +1565,10 @@ function injectRecommendedItem(item) {
   if (bIndex === -1) return;
 
   const normalizedItem = normalizeGeneratedItemForCanvas(item);
+  if (!normalizedItem) {
+    showSyncBanner('This AI suggestion was skipped because it was incomplete.', true);
+    return;
+  }
   const freshId = `ai-item-${Date.now()}`;
   const newItem = {
     id: freshId,
@@ -1576,9 +1649,9 @@ function setupGalleryHandlers() {
         body: JSON.stringify({ theme: themeStr })
       });
 
-      const data = await res.json();
+      const data = await parseJsonResponse(res, 'Could not generate vision elements right now.');
       if (!res.ok) {
-        throw new Error(data.error || 'Could not generate vision elements right now.');
+        throw new Error(data?.error || 'Could not generate vision elements right now.');
       }
 
       activeGalleryResult = data;
@@ -1681,10 +1754,9 @@ function setupGalleryHandlers() {
 
     // Recommendation Cards elements
     gItemsGrid.innerHTML = '';
-    const items = data.suggestedItems || data.itemsToCreate;
-    if (items && items.length > 0) {
-      items.forEach((rm, index) => {
-        const normalizedRecommendation = normalizeGeneratedItemForCanvas(rm);
+    const items = getValidatedGeneratedItems(data.suggestedItems || data.itemsToCreate);
+    if (items.length > 0) {
+      items.forEach((normalizedRecommendation, index) => {
         const itemCol = document.createElement('div');
         itemCol.className = index % 5 === 0 ? 'col-md-6' : 'col-md-4';
         const safeTitle = escapeHtml(normalizedRecommendation.title || 'Suggested element');
@@ -1741,7 +1813,7 @@ function setupGalleryHandlers() {
       return;
     }
 
-    const items = activeGalleryResult.suggestedItems || activeGalleryResult.itemsToCreate;
+    const items = getValidatedGeneratedItems(activeGalleryResult.suggestedItems || activeGalleryResult.itemsToCreate);
     if (!items || items.length === 0) {
       showSyncBanner('The generated theme has no elements to push.', true);
       return;
@@ -1760,8 +1832,7 @@ function setupGalleryHandlers() {
       return;
     }
 
-    items.forEach((it, idx) => {
-      const normalizedItem = normalizeGeneratedItemForCanvas(it);
+    items.forEach((normalizedItem, idx) => {
       const freshId = `gallery-item-${Date.now()}-${idx}`;
       const newItem = {
         id: freshId,
@@ -1797,7 +1868,7 @@ function populatePushSelection() {
   select.innerHTML = boards.map(b => `<option value="${b.id}">${escapeHtml(b.title || 'Untitled board')}</option>`).join('');
 }
 
-// 13. OBFUSCATION CRYPTO LAB TESTING
+// 13. LOCAL OBFUSCATION LAB TESTING
 function setupCryptoLab() {
   setupCryptoLabHandlers({
     getCurrentUser: () => currentUser
@@ -1860,7 +1931,7 @@ function setupExportPdfHandlers() {
   }
 }
 
-function generateVisualBoardPdf() {
+async function generateVisualBoardPdf() {
   const b = boards.find(o => o.id === currentBoardId);
   if (!b) {
     showSyncBanner('Please select an active vision board to export.', true);
@@ -1875,6 +1946,16 @@ function generateVisualBoardPdf() {
 
   exportPdfModalObj.hide();
   canvasWrapper.classList.add('printing-in-progress');
+
+  let jsPDF;
+  try {
+    ({ jsPDF } = await import('jspdf'));
+  } catch (error) {
+    canvasWrapper.classList.remove('printing-in-progress');
+    console.error("jsPDF load error:", error);
+    showSyncBanner('Failed to load the PDF exporter. Please try again.', true);
+    return;
+  }
 
   // Wait a small delay to ensure modal hides completely and classes apply
   setTimeout(() => {
@@ -1926,7 +2007,7 @@ function generateVisualBoardPdf() {
 }
 
 
-function generateProgrammaticPdf() {
+async function generateProgrammaticPdf() {
   const b = boards.find(o => o.id === currentBoardId);
   if (!b) {
     showSyncBanner('Please select an active vision board to export.', true);
@@ -1934,6 +2015,7 @@ function generateProgrammaticPdf() {
   }
 
   try {
+    const { jsPDF } = await import('jspdf');
     const doc = new jsPDF({
       orientation: 'portrait',
       unit: 'mm',

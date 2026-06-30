@@ -1,4 +1,5 @@
 import { escapeHtml } from '../utils/html.js';
+import { parseJsonResponse } from '../services/apiClient.js';
 
 export async function fetchCollaborationActivity({
   getCurrentUser,
@@ -11,7 +12,7 @@ export async function fetchCollaborationActivity({
     const res = await fetchWithCredentials('/api/boards/activity');
 
     if (res.ok) {
-      const logs = await res.json();
+      const logs = await parseJsonResponse(res, 'Could not load collaboration activity.') || [];
       if (logs.length === 0) {
         feed.innerHTML = `
           <li class="feed-note p-2.5 rounded-xl bg-white dark:bg-[#1E1B2E] border border-[#C8B6FF]/20 text-center font-mono text-[10px] text-[#9F86C0]">
@@ -42,6 +43,18 @@ export async function fetchCollaborationActivity({
 }
 
 export function startCollaborationTicker(context) {
-  fetchCollaborationActivity(context);
-  setInterval(() => fetchCollaborationActivity(context), 12000);
+  let inFlight = false;
+
+  const tick = async () => {
+    if (document.hidden || inFlight) return;
+    inFlight = true;
+    try {
+      await fetchCollaborationActivity(context);
+    } finally {
+      inFlight = false;
+    }
+  };
+
+  tick();
+  return setInterval(tick, 30000);
 }

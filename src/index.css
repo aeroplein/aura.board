@@ -1,5 +1,16 @@
 @import "tailwindcss";
 
+@theme {
+  --color-lilac: #C8B6FF;
+  --color-lavender: #B8C0FF;
+  --color-cream: #F8F7FF;
+  --color-blush: #FFD6E7;
+  --color-dusty: #9F86C0;
+  --color-plum: #5E548E;
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+}
+
 /* Vite bundle: canvas resize handle (layout polish lives in index.html) */
 .card-resize-handle {
   position: absolute;
