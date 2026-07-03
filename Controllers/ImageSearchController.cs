@@ -21,14 +21,16 @@ namespace DigitalVisionBoard.Controllers
         }
 
         [HttpGet("api/images/search")]
-        public async Task<IActionResult> Search([FromQuery] string? query, [FromQuery] string? sig)
+        public async Task<IActionResult> Search([FromQuery] string? query, [FromQuery] string? sig, [FromQuery] string? format)
         {
             var cleanedQuery = string.IsNullOrWhiteSpace(query) ? "creative workspace" : query.Trim();
             var accessKey = Environment.GetEnvironmentVariable("UNSPLASH_ACCESS_KEY");
+            var wantsJson = string.Equals(format, "json", StringComparison.OrdinalIgnoreCase);
 
             if (string.IsNullOrWhiteSpace(accessKey) || accessKey == "YOUR_UNSPLASH_ACCESS_KEY")
             {
-                return Redirect(GetFallbackImageUrl(cleanedQuery, sig));
+                var fallbackUrl = GetFallbackImageUrl(cleanedQuery, sig);
+                return wantsJson ? Ok(new { url = fallbackUrl }) : Redirect(fallbackUrl);
             }
 
             try
@@ -60,7 +62,7 @@ namespace DigitalVisionBoard.Controllers
                     var imageUrl = regularUrl.GetString();
                     if (!string.IsNullOrWhiteSpace(imageUrl))
                     {
-                        return Redirect(imageUrl);
+                        return wantsJson ? Ok(new { url = imageUrl }) : Redirect(imageUrl);
                     }
                 }
             }
@@ -69,7 +71,8 @@ namespace DigitalVisionBoard.Controllers
                 _logger.LogWarning(ex, "Unsplash image search failed for query {Query}", cleanedQuery);
             }
 
-            return Redirect(GetFallbackImageUrl(cleanedQuery, sig));
+            var finalFallbackUrl = GetFallbackImageUrl(cleanedQuery, sig);
+            return wantsJson ? Ok(new { url = finalFallbackUrl }) : Redirect(finalFallbackUrl);
         }
 
         private static string GetFallbackImageUrl(string query, string? sig)
