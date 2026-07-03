@@ -217,3 +217,117 @@ body,
   opacity: 0.9;
   transform: scale(1.1);
 }
+
+@media (max-width: 767.98px) {
+  #main-container {
+    padding-inline: clamp(0.75rem, 4vw, 1rem) !important;
+  }
+
+  #view-home,
+  #view-studio,
+  #view-gallery,
+  #view-settings,
+  #view-user-settings {
+    gap: 0.85rem !important;
+  }
+
+  .desk-search-strip,
+  .desk-sidebar-card,
+  #view-gallery .glass-card,
+  #view-settings .glass-card,
+  #view-user-settings .glass-card {
+    padding: 0.9rem !important;
+    border-radius: 1rem !important;
+  }
+
+  #studio-toolbar {
+    gap: 0.75rem !important;
+    padding: 0.85rem !important;
+    border-radius: 1rem !important;
+  }
+
+  #studio-toolbar > div:first-child {
+    align-items: flex-start !important;
+  }
+
+  #studio-toolbar h2 {
+    font-size: 1rem !important;
+    line-height: 1.2;
+  }
+
+  #studio-toolbar p {
+    font-size: 0.72rem !important;
+    line-height: 1.35;
+  }
+
+  #studio-toolbar > div:last-child {
+    gap: 0.5rem !important;
+  }
+
+  #studio-toolbar > div:last-child button {
+    min-height: 2.45rem;
+    white-space: normal !important;
+    line-height: 1.15;
+    font-size: 0.68rem !important;
+    padding: 0.55rem 0.5rem !important;
+  }
+
+  #studio-toolbar > div:last-child button svg,
+  #studio-toolbar > div:last-child button i {
+    flex: 0 0 auto;
+  }
+
+  #canvas-area-wrapper {
+    height: min(58dvh, 30rem) !important;
+    min-height: 21rem !important;
+    padding: 0.65rem !important;
+    border-radius: 1rem !important;
+  }
+
+  #no-elements-banner {
+    padding: 1rem !important;
+  }
+
+  #no-elements-banner h4 {
+    font-size: 0.9rem !important;
+  }
+
+  #no-elements-banner p {
+    font-size: 0.75rem !important;
+    line-height: 1.45;
+  }
+
+  #studio-ai-drawer {
+    max-height: 28rem !important;
+    padding: 0.9rem !important;
+    border-radius: 1rem !important;
+  }
+
+  .modal-content {
+    padding: 0.9rem !important;
+  }
+}
+
+@media (max-width: 420px) {
+  .site-brand h1 {
+    font-size: 1rem !important;
+  }
+
+  .brand-mark {
+    width: 2.15rem !important;
+    height: 2.15rem !important;
+  }
+
+  #studio-toolbar > div:last-child {
+    grid-template-columns: 1fr 1fr !important;
+  }
+
+  #studio-toolbar > div:last-child button {
+    font-size: 0.64rem !important;
+    min-height: 2.35rem;
+  }
+
+  #canvas-area-wrapper {
+    min-height: 19rem !important;
+  }
+}
