@@ -1,6 +1,6 @@
-# Digital Vision Board
+# aura.board - Digital Vision Board
 
-Digital Vision Board is a student portfolio/course project for creating personal vision boards with movable notes, quotes, images, AI-assisted inspiration, and lightweight collaboration.
+aura.board is a student portfolio/course project for creating personal vision boards with movable notes, quotes, images, AI-assisted inspiration, and lightweight collaboration.
 
 This project is intentionally small-scale. It is designed to look professional, maintainable, and credible for coursework without pretending to be enterprise production software.
 
