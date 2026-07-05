@@ -1,4 +1,5 @@
 import { escapeHtml } from '../utils/html.js';
+import { parseJsonResponse } from '../services/apiClient.js';
 
 export async function loadCachedSession({
   fetchWithCredentials,
@@ -11,7 +12,7 @@ export async function loadCachedSession({
   try {
     const res = await fetchWithCredentials('/api/auth/session');
     if (res.ok) {
-      const data = await res.json();
+      const data = await parseJsonResponse(res, 'Unable to restore cookie session.');
       setCurrentUser(data.user);
       renderUserProfileUI();
       fetchUserBoards();
@@ -143,9 +144,12 @@ export function setupAuthForm({
         body: JSON.stringify(bodyObj)
       });
 
-      const data = await res.json();
+      const data = await parseJsonResponse(
+        res,
+        'The API server is not responding. Start the backend, then try signing in again.'
+      );
       if (!res.ok) {
-        throw new Error(data.error || 'Identity verification failed.');
+        throw new Error(data?.error || 'Identity verification failed.');
       }
 
       setCurrentUser(data.user);
@@ -156,7 +160,7 @@ export function setupAuthForm({
       showTab('home');
 
     } catch (err) {
-      alert.textContent = err.message || 'Could not complete sign-in. Check your details and try again.';
+      alert.textContent = getFriendlyAuthError(err.message);
       alert.classList.remove('d-none');
     } finally {
       if (submitBtn) {
@@ -184,4 +188,29 @@ export function toggleAuthMode(regMode) {
     toggleBtn.innerHTML = 'New to the studio? <strong class="text-[#5E548E]">Sign Up</strong>';
     submitBtn.textContent = 'Unlock Canvas Gate';
   }
+}
+
+function getFriendlyAuthError(message) {
+  const fallback = 'Could not complete sign-in. Check your details and try again.';
+  if (!message) return fallback;
+
+  const lowerMessage = message.toLowerCase();
+
+  if (lowerMessage.includes('mx record') || lowerMessage.includes('cannot receive mail')) {
+    return 'Please use a different email address.';
+  }
+
+  if (lowerMessage.includes('disposable') || lowerMessage.includes('temporary')) {
+    return 'Please use a permanent email address.';
+  }
+
+  if (lowerMessage.includes('domain is invalid') || lowerMessage.includes('valid domain')) {
+    return 'Please use a valid email address.';
+  }
+
+  if (lowerMessage.includes('not allowed')) {
+    return 'Please use a different email address.';
+  }
+
+  return message;
 }

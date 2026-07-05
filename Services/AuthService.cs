@@ -1,4 +1,5 @@
 using System;
+using System.Net;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -6,31 +7,64 @@ using DigitalVisionBoard.Data;
 using DigitalVisionBoard.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace DigitalVisionBoard.Services
 {
+    public enum EmailVerificationResult
+    {
+        Success,
+        MissingParameters,
+        UserNotFound,
+        AlreadyVerified,
+        InvalidToken,
+        Expired
+    }
+
     public class AuthService
     {
         public const string AuthCookieName = "vision_board_auth";
         public static readonly TimeSpan TokenLifetime = TimeSpan.FromHours(8);
+        public static readonly TimeSpan EmailVerificationTokenLifetime = TimeSpan.FromHours(24);
 
         private const int LegacyIterations = 1_000;
         private const int CurrentIterations = 210_000;
         private const int SaltBytesLength = 16;
         private const int HashBytesLength = 64;
+        private const int EmailVerificationTokenBytesLength = 32;
 
         private readonly AppDbContext _context;
         private readonly IConfiguration _configuration;
+        private readonly IEmailService _emailService;
+        private readonly IAdvancedEmailValidator _advancedEmailValidator;
+        private readonly MailSettings _mailSettings;
+        private readonly ILogger<AuthService> _logger;
 
-        public AuthService(AppDbContext context, IConfiguration configuration)
+        public AuthService(
+            AppDbContext context,
+            IConfiguration configuration,
+            IEmailService emailService,
+            IAdvancedEmailValidator advancedEmailValidator,
+            IOptions<MailSettings> mailOptions,
+            ILogger<AuthService> logger)
         {
             _context = context;
             _configuration = configuration;
+            _emailService = emailService;
+            _advancedEmailValidator = advancedEmailValidator;
+            _mailSettings = mailOptions.Value;
+            _logger = logger;
         }
 
         public async Task<AuthResponse> RegisterAsync(RegisterRequest request)
         {
             var email = NormalizeEmail(request.Email);
+            var emailValidation = await _advancedEmailValidator.ValidateAsync(email);
+            if (!emailValidation.IsValid)
+            {
+                throw new AdvancedEmailValidationException(emailValidation.Error ?? "Email address is not allowed.");
+            }
 
             if (await _context.Users.AnyAsync(u => u.Email == email))
             {
@@ -38,12 +72,15 @@ namespace DigitalVisionBoard.Services
             }
 
             var (salt, passwordHash) = HashPassword(request.Password);
+            var emailVerificationToken = await GenerateUniqueEmailVerificationTokenAsync();
             var user = new User
             {
                 Email = email,
                 Name = request.Name.Trim(),
                 PasswordHash = passwordHash,
-                Salt = salt
+                Salt = salt,
+                EmailVerificationToken = emailVerificationToken,
+                EmailVerificationExpires = DateTime.UtcNow.Add(EmailVerificationTokenLifetime)
             };
 
             _context.Users.Add(user);
@@ -52,12 +89,19 @@ namespace DigitalVisionBoard.Services
             _context.Boards.Add(CreateDefaultUserBoard(user.Id));
             await _context.SaveChangesAsync();
 
+            await SendVerificationEmailIfConfiguredAsync(user);
+
             return CreateAuthResponse(user);
         }
 
         public async Task<AuthResponse?> LoginAsync(LoginRequest request)
         {
             var email = NormalizeEmail(request.Email);
+            if (!StrictEmailValidator.IsValid(email))
+            {
+                return null;
+            }
+
             var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
             if (user == null || !VerifyPassword(request.Password, user, out var needsRehash))
             {
@@ -73,6 +117,44 @@ namespace DigitalVisionBoard.Services
             }
 
             return CreateAuthResponse(user);
+        }
+
+        public async Task<EmailVerificationResult> VerifyEmailAsync(string? email, string? token)
+        {
+            if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(token))
+            {
+                return EmailVerificationResult.MissingParameters;
+            }
+
+            var normalizedEmail = NormalizeEmail(email);
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == normalizedEmail);
+            if (user == null)
+            {
+                return EmailVerificationResult.UserNotFound;
+            }
+
+            if (user.IsEmailVerified)
+            {
+                return EmailVerificationResult.AlreadyVerified;
+            }
+
+            if (string.IsNullOrWhiteSpace(user.EmailVerificationToken) ||
+                !FixedTimeEquals(user.EmailVerificationToken, token.Trim()))
+            {
+                return EmailVerificationResult.InvalidToken;
+            }
+
+            if (!user.EmailVerificationExpires.HasValue || user.EmailVerificationExpires.Value <= DateTime.UtcNow)
+            {
+                return EmailVerificationResult.Expired;
+            }
+
+            user.IsEmailVerified = true;
+            user.EmailVerificationToken = null;
+            user.EmailVerificationExpires = null;
+            await _context.SaveChangesAsync();
+
+            return EmailVerificationResult.Success;
         }
 
         public async Task<User?> GetUserFromJwtAsync(string? token)
@@ -185,6 +267,66 @@ namespace DigitalVisionBoard.Services
             var salt = Convert.ToHexString(RandomNumberGenerator.GetBytes(SaltBytesLength)).ToLowerInvariant();
             var hash = Pbkdf2Hex(password, salt, CurrentIterations);
             return (salt, $"pbkdf2_sha512${CurrentIterations}${salt}${hash}");
+        }
+
+        private async Task SendVerificationEmailIfConfiguredAsync(User user)
+        {
+            if (string.IsNullOrWhiteSpace(user.EmailVerificationToken))
+            {
+                return;
+            }
+
+            var verificationUrl = BuildEmailVerificationUrl(user.Email, user.EmailVerificationToken);
+            var subject = "Verify your Digital Vision Board email";
+            var encodedName = WebUtility.HtmlEncode(user.Name);
+            var encodedUrl = WebUtility.HtmlEncode(verificationUrl);
+            var body = $"""
+                <p>Hello {encodedName},</p>
+                <p>Please verify your email address for Digital Vision Board.</p>
+                <p><a href="{encodedUrl}">Verify email address</a></p>
+                <p>This link expires in 24 hours.</p>
+                """;
+
+            try
+            {
+                await _emailService.SendEmailAsync(user.Email, subject, body);
+            }
+            catch (InvalidOperationException ex)
+            {
+                _logger.LogWarning(ex, "Email verification message was not sent because SMTP settings are incomplete.");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Email verification message failed for {Email}", user.Email);
+            }
+        }
+
+        private string BuildEmailVerificationUrl(string email, string token)
+        {
+            var baseUrl = string.IsNullOrWhiteSpace(_mailSettings.AppBaseUrl)
+                ? "http://localhost:5000"
+                : _mailSettings.AppBaseUrl.TrimEnd('/');
+
+            return $"{baseUrl}/api/auth/verify-email?email={Uri.EscapeDataString(email)}&token={Uri.EscapeDataString(token)}";
+        }
+
+        private static string GenerateEmailVerificationToken()
+        {
+            return Convert.ToHexString(RandomNumberGenerator.GetBytes(EmailVerificationTokenBytesLength)).ToLowerInvariant();
+        }
+
+        private async Task<string> GenerateUniqueEmailVerificationTokenAsync()
+        {
+            for (var attempt = 0; attempt < 5; attempt++)
+            {
+                var token = GenerateEmailVerificationToken();
+                if (!await _context.Users.AnyAsync(u => u.EmailVerificationToken == token))
+                {
+                    return token;
+                }
+            }
+
+            throw new InvalidOperationException("Could not generate a unique email verification token.");
         }
 
         private static bool VerifyPassword(string password, User user, out bool needsRehash)

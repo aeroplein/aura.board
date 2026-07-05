@@ -46,6 +46,9 @@ namespace DigitalVisionBoard.Data
 
                 entity.Property(u => u.Salt)
                     .HasMaxLength(128);
+
+                entity.Property(u => u.EmailVerificationToken)
+                    .HasMaxLength(64);
             });
 
             modelBuilder.Entity<Board>(entity =>
@@ -117,6 +120,10 @@ namespace DigitalVisionBoard.Data
             // Configure User Email unique constraint & index
             modelBuilder.Entity<User>()
                 .HasIndex(u => u.Email)
+                .IsUnique();
+
+            modelBuilder.Entity<User>()
+                .HasIndex(u => u.EmailVerificationToken)
                 .IsUnique();
 
             // Configure BoardCollaborator composite primary key

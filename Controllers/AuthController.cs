@@ -38,22 +38,40 @@ namespace DigitalVisionBoard.Controllers
             catch (InvalidOperationException ex)
             {
                 _logger.LogInformation(ex, "Registration rejected for {Email}", request.Email);
+                if (ex is AdvancedEmailValidationException)
+                {
+                    return BadRequest(new { error = ex.Message });
+                }
+
                 return Conflict(new { error = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Registration failed for {Email}", request.Email);
+                return StatusCode(StatusCodes.Status503ServiceUnavailable, new { error = "Accounts are temporarily unavailable. Check the database configuration and try again." });
             }
         }
 
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginRequest request)
         {
-            var response = await _authService.LoginAsync(request);
-            if (response == null)
+            try
             {
-                // Keep the same response for unknown emails and wrong passwords to avoid account enumeration.
-                return BadRequest(new { error = "Invalid email or password." });
-            }
+                var response = await _authService.LoginAsync(request);
+                if (response == null)
+                {
+                    // Keep the same response for unknown emails and wrong passwords to avoid account enumeration.
+                    return BadRequest(new { error = "Invalid email or password." });
+                }
 
-            SetAuthCookie(response);
-            return Ok(response);
+                SetAuthCookie(response);
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Login failed for {Email}", request.Email);
+                return StatusCode(StatusCodes.Status503ServiceUnavailable, new { error = "Accounts are temporarily unavailable. Check the database configuration and try again." });
+            }
         }
 
         [HttpGet("session")]
@@ -67,6 +85,30 @@ namespace DigitalVisionBoard.Controllers
 
             var preferencesDto = new UserPreferencesDto(user.DarkMode, user.NotificationsEnabled, user.HighContrast);
             return Ok(new { user = new UserResponse(user.Id, user.Email, user.Name, preferencesDto) });
+        }
+
+        [HttpGet("verify-email")]
+        public async Task<IActionResult> VerifyEmail([FromQuery] string? email, [FromQuery] string? token)
+        {
+            try
+            {
+                var result = await _authService.VerifyEmailAsync(email, token);
+                return result switch
+                {
+                    EmailVerificationResult.Success => Ok(new { success = true, message = "Email verified successfully." }),
+                    EmailVerificationResult.AlreadyVerified => Conflict(new { error = "Email address is already verified." }),
+                    EmailVerificationResult.MissingParameters => BadRequest(new { error = "Email and token are required." }),
+                    EmailVerificationResult.Expired => BadRequest(new { error = "Email verification token has expired." }),
+                    EmailVerificationResult.InvalidToken => BadRequest(new { error = "Invalid email verification token." }),
+                    EmailVerificationResult.UserNotFound => NotFound(new { error = "User not found." }),
+                    _ => BadRequest(new { error = "Email verification failed." })
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Email verification failed for {Email}", email);
+                return StatusCode(StatusCodes.Status503ServiceUnavailable, new { error = "Email verification is temporarily unavailable." });
+            }
         }
 
         [HttpPost("logout")]

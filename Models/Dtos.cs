@@ -7,13 +7,13 @@ namespace DigitalVisionBoard.Models
 {
     // --- AUTHENTICATION DTOS ---
     public record RegisterRequest(
-        [param: Required, EmailAddress, StringLength(254)] string Email,
+        [param: Required, StrictEmailAddress, StringLength(254)] string Email,
         [param: Required, MinLength(8), StringLength(128)] string Password,
         [param: Required, StringLength(80, MinimumLength = 2)] string Name
     );
 
     public record LoginRequest(
-        [param: Required, EmailAddress, StringLength(254)] string Email,
+        [param: Required, StrictEmailAddress, StringLength(254)] string Email,
         [param: Required, StringLength(128)] string Password
     );
 
@@ -45,7 +45,7 @@ namespace DigitalVisionBoard.Models
         double X,
         [param: Range(0, 5000)]
         double Y,
-        [param: Range(5, 100)]
+        [param: Range(5, 200)]
         int Width,
         [param: Range(5, 100)]
         int Height,
@@ -130,7 +130,18 @@ namespace DigitalVisionBoard.Models
     public record SyncResponse(
         bool Success,
         List<BoardResponse> Boards,
-        DateTime Timestamp
+        DateTime Timestamp,
+        int AppliedCount = 0,
+        int SkippedCount = 0,
+        List<string>? Warnings = null,
+        List<SyncSkippedActionDto>? SkippedActions = null
+    );
+
+    public record SyncSkippedActionDto(
+        string Action,
+        Guid BoardId,
+        string? ItemId,
+        string Reason
     );
 
     // --- AI / GEMINI DTOS ---
@@ -177,6 +188,64 @@ namespace DigitalVisionBoard.Models
                     yield break;
                 }
             }
+        }
+    }
+
+    public sealed class StrictEmailAddressAttribute : ValidationAttribute
+    {
+        public StrictEmailAddressAttribute()
+            : base("Use a real email address with a valid domain, such as name@example.com.")
+        {
+        }
+
+        public override bool IsValid(object? value)
+        {
+            return value is string email && StrictEmailValidator.IsValid(email);
+        }
+    }
+
+    internal static class StrictEmailValidator
+    {
+        private static readonly EmailAddressAttribute EmailAddress = new();
+
+        public static bool IsValid(string? email)
+        {
+            if (string.IsNullOrWhiteSpace(email))
+            {
+                return false;
+            }
+
+            email = email.Trim();
+            if (!EmailAddress.IsValid(email))
+            {
+                return false;
+            }
+
+            var atIndex = email.LastIndexOf('@');
+            if (atIndex <= 0 || atIndex == email.Length - 1)
+            {
+                return false;
+            }
+
+            var domain = email[(atIndex + 1)..].ToLowerInvariant();
+            var labels = domain.Split('.', StringSplitOptions.RemoveEmptyEntries);
+            if (labels.Length < 2)
+            {
+                return false;
+            }
+
+            var topLevelDomain = labels[^1];
+            if (topLevelDomain.Length < 2 || topLevelDomain.Any(c => !char.IsLetter(c)))
+            {
+                return false;
+            }
+
+            return labels.Take(labels.Length - 1).All(label =>
+                label.Length >= 2 &&
+                label.Length <= 63 &&
+                label.All(c => char.IsLetterOrDigit(c) || c == '-') &&
+                !label.StartsWith('-') &&
+                !label.EndsWith('-'));
         }
     }
 }

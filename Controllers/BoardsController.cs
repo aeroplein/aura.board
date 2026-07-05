@@ -17,17 +17,20 @@ namespace DigitalVisionBoard.Controllers
         private readonly IInviteEmailService _inviteEmailService;
         private readonly IConfiguration _configuration;
         private readonly BoardService _boardService;
+        private readonly ILogger<BoardsController> _logger;
 
         public BoardsController(
             AppDbContext context,
             AuthService authService,
             IInviteEmailService inviteEmailService,
             IConfiguration configuration,
-            BoardService boardService) : base(context, authService)
+            BoardService boardService,
+            ILogger<BoardsController> logger) : base(context, authService)
         {
             _inviteEmailService = inviteEmailService;
             _configuration = configuration;
             _boardService = boardService;
+            _logger = logger;
         }
 
         [HttpGet]
@@ -93,6 +96,8 @@ namespace DigitalVisionBoard.Controllers
             _context.Boards.Add(newBoard);
             await _context.SaveChangesAsync();
 
+            _logger.LogInformation("Created board {BoardId} for user {UserId}", newBoard.Id, user.Id);
+
             // Return board response mapping (no items initially)
             var response = _boardService.MapToDto(newBoard);
             return CreatedAtAction(nameof(GetBoardById), new { id = newBoard.Id }, response);
@@ -149,12 +154,14 @@ namespace DigitalVisionBoard.Controllers
 
             if (!isOwner && !isCollaborator)
             {
+                _logger.LogWarning("User {UserId} attempted to modify inaccessible board {BoardId}", user.Id, id);
                 return StatusCode(403, new { error = "Forbidden: You cannot modify this board." });
             }
 
             // Permission model: owners manage board settings/collaborators; collaborators edit board items only.
             if (!isOwner && _boardService.HasBoardSettingsChanges(request))
             {
+                _logger.LogWarning("Collaborator {UserId} attempted board settings update for board {BoardId}", user.Id, id);
                 return StatusCode(403, new { error = "Forbidden: Only the board owner can update settings or collaborators." });
             }
 
@@ -213,6 +220,12 @@ namespace DigitalVisionBoard.Controllers
             }
 
             await _context.SaveChangesAsync();
+            _logger.LogInformation(
+                "Updated board {BoardId} for user {UserId}; settingsChanged={SettingsChanged}; itemCount={ItemCount}",
+                board.Id,
+                user.Id,
+                _boardService.HasBoardSettingsChanges(request),
+                board.Items.Count);
             return Ok(_boardService.MapToDto(board));
         }
 
@@ -233,11 +246,14 @@ namespace DigitalVisionBoard.Controllers
 
             if (board.OwnerId != user.Id)
             {
+                _logger.LogWarning("User {UserId} attempted to delete board {BoardId} owned by {OwnerId}", user.Id, id, board.OwnerId);
                 return StatusCode(403, new { error = "Forbidden: Only the owner can delete the board." });
             }
 
             _context.Boards.Remove(board);
             await _context.SaveChangesAsync();
+
+            _logger.LogInformation("Deleted board {BoardId} for user {UserId}", id, user.Id);
 
             return NoContent();
         }
@@ -282,6 +298,12 @@ namespace DigitalVisionBoard.Controllers
             );
 
             var boardUrl = $"{baseUrl.TrimEnd('/')}/?board={Uri.EscapeDataString(board.Id.ToString())}";
+            _logger.LogInformation(
+                "Prepared invites for board {BoardId} by user {UserId}; configured={Configured}; sentCount={SentCount}",
+                board.Id,
+                user.Id,
+                result.IsConfigured,
+                result.SentCount);
 
             return Ok(new
             {

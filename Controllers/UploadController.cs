@@ -36,6 +36,7 @@ namespace DigitalVisionBoard.Controllers
             }
             catch (InvalidDataException ex)
             {
+                _logger.LogWarning(ex, "Image upload rejected for user {UserId}", user.Id);
                 return BadRequest(new { error = ex.Message });
             }
             catch (Exception ex)

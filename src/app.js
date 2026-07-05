@@ -277,6 +277,36 @@ function isPinterestImageSource(value) {
   }
 }
 
+function isPinterestPageSource(value) {
+  try {
+    const host = new URL(String(value || '').trim()).hostname.toLowerCase();
+    return host === 'pin.it' ||
+      host.endsWith('.pin.it') ||
+      host === 'pinterest.com' ||
+      host.endsWith('.pinterest.com');
+  } catch {
+    return false;
+  }
+}
+
+function isDirectImagePreviewSource(value) {
+  const content = String(value || '').trim();
+  if (!content) return false;
+  if (content.startsWith('/data/') || content.startsWith('data:image') || content.startsWith('/api/images/')) return true;
+  if (!content.startsWith('http')) return true;
+
+  try {
+    const url = new URL(content);
+    const host = url.hostname.toLowerCase();
+    const path = url.pathname.toLowerCase();
+    return host === 'pinimg.com' ||
+      host.endsWith('.pinimg.com') ||
+      /\.(png|jpe?g|webp|gif|avif)$/.test(path);
+  } catch {
+    return false;
+  }
+}
+
 function refreshResolvedImageForItem(item) {
   if (!item || item.type !== 'image' || item.isEncrypted) return;
   if (isImageKeywordQuery(item.content)) {
@@ -311,6 +341,75 @@ function getPreviewImageSource(rawContent) {
   const content = String(rawContent || '').trim();
   if (!content) return '';
   return resolvedImageCache.get(content) || resolveImageSource(content);
+}
+
+function ensureItemPreviewFallback() {
+  const previewContainer = document.getElementById('item-image-preview-container');
+  if (!previewContainer) return null;
+
+  let fallback = document.getElementById('item-image-preview-fallback');
+  if (!fallback) {
+    fallback = document.createElement('div');
+    fallback.id = 'item-image-preview-fallback';
+    fallback.className = 'w-full';
+    previewContainer.appendChild(fallback);
+  }
+
+  return fallback;
+}
+
+function showImagePreview(value) {
+  const previewContainer = document.getElementById('item-image-preview-container');
+  const previewImg = document.getElementById('item-image-preview');
+  if (!previewContainer || !previewImg) return;
+
+  const fallback = ensureItemPreviewFallback();
+  previewContainer.classList.remove('d-none');
+  previewContainer.style.minHeight = '6rem';
+
+  if (isDirectImagePreviewSource(value)) {
+    if (fallback) {
+      fallback.classList.add('d-none');
+      fallback.innerHTML = '';
+    }
+    previewImg.classList.remove('d-none');
+    previewImg.src = getPreviewImageSource(value);
+    return;
+  }
+
+  previewImg.src = '';
+  previewImg.classList.add('d-none');
+  if (fallback) {
+    fallback.classList.remove('d-none');
+    fallback.innerHTML = imageFallbackMarkup(
+      isPinterestPageSource(value) ? 'Pinterest page link' : 'Preview unavailable',
+      isPinterestPageSource(value)
+        ? 'Use a direct i.pinimg.com image file URL, type keywords, or upload the image file.'
+        : 'Type keywords, paste a direct image URL, or upload an image file.'
+    );
+    lucide.createIcons();
+  }
+}
+
+function hideImagePreview() {
+  const previewContainer = document.getElementById('item-image-preview-container');
+  const previewImg = document.getElementById('item-image-preview');
+
+  if (previewImg) {
+    previewImg.src = '';
+    previewImg.classList.remove('d-none');
+  }
+
+  const fallback = document.getElementById('item-image-preview-fallback');
+  if (fallback) {
+    fallback.classList.add('d-none');
+    fallback.innerHTML = '';
+  }
+
+  if (previewContainer) {
+    previewContainer.classList.add('d-none');
+    previewContainer.style.minHeight = '';
+  }
 }
 
 window.handleImageLoadError = function handleImageLoadError(img) {
@@ -1108,7 +1207,7 @@ function setupItemForm() {
     const imageUploadWrapper = document.getElementById('item-image-upload-wrapper');
     if (val === 'image') {
       imageUploadWrapper?.classList.remove('d-none');
-      labelContent.textContent = 'Image Keyword, Image URL, or Pinterest Image Link';
+      labelContent.textContent = 'Image Keyword or Direct Image URL';
       labelCaption.textContent = 'Aesthetic Photo Tagline / Caption';
       extraCaptionWrap.classList.remove('d-none');
       updateImageSourceModeUI();
@@ -1145,33 +1244,89 @@ function setupItemForm() {
   const submitBtn = form.querySelector('button[type="submit"]');
 
   function updateImageSourceModeUI() {
-    const mode = imageSourceMode?.value || 'keyword';
-    localUploadWrapper?.classList.toggle('d-none', mode !== 'upload');
-    pinterestWrapper?.classList.toggle('d-none', mode !== 'pinterest');
+    let mode = imageSourceMode?.value || 'keyword';
+    if (mode === 'pinterest' && imageSourceMode) {
+      imageSourceMode.value = 'keyword';
+      mode = 'keyword';
+    }
 
-    if (mode === 'pinterest') {
-      labelContent.textContent = 'Pinterest Image Link';
-      contentTextarea.placeholder = 'Paste a direct Pinterest image address, e.g. https://i.pinimg.com/...';
-      if (pinterestUrlInput && contentTextarea.value && !pinterestUrlInput.value) {
-        pinterestUrlInput.value = contentTextarea.value;
-      }
-    } else if (mode === 'upload') {
+    localUploadWrapper?.classList.toggle('d-none', mode !== 'upload');
+    pinterestWrapper?.classList.add('d-none');
+
+    if (mode === 'upload') {
       labelContent.textContent = 'Uploaded Image URL';
       contentTextarea.placeholder = 'Upload a local image to fill this automatically';
     } else {
       labelContent.textContent = 'Image Keyword or Direct Image URL';
-      contentTextarea.placeholder = 'Type image keywords or paste a direct image URL';
+      contentTextarea.placeholder = 'Type keywords or paste a direct image URL, e.g. https://i.pinimg.com/...jpg';
+    }
+  }
+
+  function ensurePreviewFallback() {
+    if (!previewContainer) return null;
+    let fallback = document.getElementById('item-image-preview-fallback');
+    if (!fallback) {
+      fallback = document.createElement('div');
+      fallback.id = 'item-image-preview-fallback';
+      fallback.className = 'w-full';
+      previewContainer.appendChild(fallback);
+    }
+    return fallback;
+  }
+
+  function showImagePreview(value) {
+    if (!previewContainer || !previewImg) return;
+
+    const fallback = ensurePreviewFallback();
+    previewContainer.classList.remove('d-none');
+    previewContainer.style.minHeight = '6rem';
+
+    if (isDirectImagePreviewSource(value)) {
+      if (fallback) {
+        fallback.classList.add('d-none');
+        fallback.innerHTML = '';
+      }
+      previewImg.classList.remove('d-none');
+      previewImg.src = getPreviewImageSource(value);
+      return;
+    }
+
+    previewImg.src = '';
+    previewImg.classList.add('d-none');
+    if (fallback) {
+      fallback.classList.remove('d-none');
+      fallback.innerHTML = imageFallbackMarkup(
+        isPinterestPageSource(value) ? 'Pinterest page link' : 'Preview unavailable',
+        isPinterestPageSource(value)
+          ? 'Use a direct i.pinimg.com image file URL, type keywords, or upload the image file.'
+          : 'Type keywords, paste a direct image URL, or upload an image file.'
+      );
+      lucide.createIcons();
+    }
+  }
+
+  function hideImagePreview() {
+    if (previewImg) {
+      previewImg.src = '';
+      previewImg.classList.remove('d-none');
+    }
+    const fallback = document.getElementById('item-image-preview-fallback');
+    if (fallback) {
+      fallback.classList.add('d-none');
+      fallback.innerHTML = '';
+    }
+    if (previewContainer) {
+      previewContainer.classList.add('d-none');
+      previewContainer.style.minHeight = '';
     }
   }
 
   function updateImagePreviewFromContent() {
     const value = contentTextarea.value.trim();
     if (typeSelect.value === 'image' && value) {
-      if (previewImg) previewImg.src = getPreviewImageSource(value);
-      if (previewContainer) previewContainer.classList.remove('d-none');
+      showImagePreview(value);
     } else {
-      if (previewImg) previewImg.src = '';
-      if (previewContainer) previewContainer.classList.add('d-none');
+      hideImagePreview();
     }
   }
 
@@ -1211,9 +1366,6 @@ function setupItemForm() {
 
   imageSourceMode?.addEventListener('change', () => {
     updateImageSourceModeUI();
-    if (imageSourceMode.value === 'pinterest' && pinterestUrlInput) {
-      pinterestUrlInput.value = contentTextarea.value.trim();
-    }
     updateImagePreviewFromContent();
   });
 
@@ -1222,11 +1374,26 @@ function setupItemForm() {
     updateImagePreviewFromContent();
   });
 
+  previewImg?.addEventListener('error', () => {
+    const value = contentTextarea.value.trim();
+    if (!value) return;
+    const fallback = ensurePreviewFallback();
+    previewImg.src = '';
+    previewImg.classList.add('d-none');
+    if (fallback) {
+      fallback.classList.remove('d-none');
+      fallback.innerHTML = imageFallbackMarkup(
+        isPinterestPageSource(value) ? 'Pinterest page link' : 'Preview unavailable',
+        isPinterestPageSource(value)
+          ? 'Use a direct i.pinimg.com image file URL, type keywords, or upload the image file.'
+          : 'The image link could not be loaded in the browser preview.'
+      );
+      lucide.createIcons();
+    }
+  });
+
   contentTextarea?.addEventListener('input', () => {
     if (typeSelect.value !== 'image') return;
-    if (imageSourceMode?.value === 'pinterest' && pinterestUrlInput) {
-      pinterestUrlInput.value = contentTextarea.value.trim();
-    }
     updateImagePreviewFromContent();
   });
 
@@ -1281,8 +1448,7 @@ function setupItemForm() {
           if (res.ok) {
             if (data.url) {
               contentTextarea.value = data.url;
-              if (previewImg) previewImg.src = data.url;
-              if (previewContainer) previewContainer.classList.remove('d-none');
+              showImagePreview(data.url);
               showSyncBanner('Image uploaded successfully.', false);
             } else {
               throw new Error('No url returned from server');
@@ -1293,8 +1459,7 @@ function setupItemForm() {
         } catch (err) {
           // Fallback to local base64 on failure or offline
           contentTextarea.value = base64Data;
-          if (previewImg) previewImg.src = base64Data;
-          if (previewContainer) previewContainer.classList.remove('d-none');
+          showImagePreview(base64Data);
           showSyncBanner(`${err.message || 'Image upload failed.'} Using a session-local image payload fallback.`, true);
         } finally {
           // Hide status spinner, re-enable form submit
@@ -1323,8 +1488,7 @@ function setupItemForm() {
     removeImgBtn.addEventListener('click', () => {
       if (fileInput) fileInput.value = '';
       if (pinterestUrlInput) pinterestUrlInput.value = '';
-      if (previewImg) previewImg.src = '';
-      if (previewContainer) previewContainer.classList.add('d-none');
+      hideImagePreview();
       if (contentTextarea.value.startsWith('data:image') ||
         contentTextarea.value.startsWith('/data/uploads/') ||
         contentTextarea.value.startsWith('/api/images/') ||
@@ -1353,7 +1517,7 @@ function setupItemForm() {
     // Reset file input and preview container for new item
     if (fileInput) fileInput.value = '';
     if (previewContainer) previewContainer.classList.add('d-none');
-    if (previewImg) previewImg.src = '';
+    hideImagePreview();
     if (uploadStatus) {
       uploadStatus.classList.remove('d-flex');
       uploadStatus.classList.add('d-none');
@@ -1363,7 +1527,9 @@ function setupItemForm() {
     if (zSelect) zSelect.value = 'keep';
 
     typeSelect.dispatchEvent(new Event('change'));
-    updateImageSourceModeUI();
+    if (typeSelect.value === 'image') {
+      updateImageSourceModeUI();
+    }
     delBtn.classList.add('d-none');
     document.getElementById('itemModalHeaderTitle').textContent = 'Curate A New Card';
     itemModalObj.show();
@@ -1389,6 +1555,11 @@ function setupItemForm() {
 
     try {
       if (type === 'image') {
+        if (isPinterestPageSource(content)) {
+          showSyncBanner('Pinterest board/page links cannot display as images. Paste a direct i.pinimg.com image URL, type keywords, or upload the image file.', true);
+          document.getElementById('item-field-content').focus();
+          return;
+        }
         content = await anchorImageContentIfNeeded(content);
         document.getElementById('item-field-content').value = content;
       }
@@ -1569,11 +1740,9 @@ function openEditCardModal(item) {
   }
 
   if (item.type === 'image' && valToDisplay) {
-    if (previewImg) previewImg.src = getPreviewImageSource(valToDisplay);
-    if (previewContainer) previewContainer.classList.remove('d-none');
+    showImagePreview(valToDisplay);
   } else {
-    if (previewContainer) previewContainer.classList.add('d-none');
-    if (previewImg) previewImg.src = '';
+    hideImagePreview();
   }
 
   document.getElementById('btn-delete-card').classList.remove('d-none');
@@ -1797,36 +1966,131 @@ async function requestAiBoardInsights({ forceRefresh = false } = {}) {
 function buildLocalAiBoardFallback(board) {
   const title = board?.title || 'this board';
   const category = board?.category || 'your current vision';
+  const theme = getLocalThemeProfile(title, board?.description, category);
+
   return {
-    analysis: `Live AI suggestions are unavailable, so Aura prepared a local starter set for "${title}" based on ${category}. You can add these now and refine them later.`,
-    suggestedColorPalette: ['#c4b5fd', '#a5b4fc', '#f8fafc', '#fbcfe8'],
+    analysis: `Live AI suggestions are unavailable, so Aura prepared a local set for "${title}" tuned to ${theme.summary}. These are starter cards you can add now, not generic productivity prompts.`,
+    suggestedColorPalette: theme.palette,
     recommendedItems: [
       {
         type: 'quote',
-        title: 'Daily Action Catalyst',
-        content: 'Continuous improvement is better than delayed perfection.',
-        color: 'bg-indigo-50 dark:bg-indigo-950 border-indigo-200 dark:border-indigo-800',
-        width: 25,
+        title: theme.quoteTitle,
+        content: theme.quote,
+        caption: theme.quoteCaption,
+        color: theme.quoteColor,
+        width: 30,
         height: 25
       },
       {
         type: 'note',
-        title: 'Growth Intentions Checklist',
-        content: '[ ] Identify one micro-habit you can start today\n[ ] Block out 15 minutes in your calendar\n[ ] Capture one visual reference that matches the mood',
-        color: 'bg-emerald-50 dark:bg-emerald-950 border-emerald-200 dark:border-emerald-800',
-        width: 25,
+        title: theme.noteTitle,
+        content: theme.note,
+        color: theme.noteColor,
+        width: 30,
         height: 30
       },
       {
         type: 'image',
-        title: 'Focus Mindset Symbol',
-        content: 'focused workspace soft light growth mindset',
-        caption: 'A visual anchor for structured growth and personal momentum.',
-        width: 30,
+        title: theme.imageTitle,
+        content: theme.imageQuery,
+        caption: theme.imageCaption,
+        width: 38,
         height: 35
       }
     ]
   };
+}
+
+function getLocalThemeProfile(title = '', description = '', category = '') {
+  const combined = `${title} ${description || ''} ${category || ''}`.toLowerCase();
+  const displayTitle = String(title || 'this board').trim();
+
+  if (containsAny(combined, ['love', 'life', 'personal', 'glow', 'wellbeing', 'confidence', 'dream'])) {
+    return {
+      summary: 'personal lifestyle, confidence, and a softer daily atmosphere',
+      palette: ['#f8c8dc', '#c8b6ff', '#fff7ed', '#f3e8ff'],
+      quoteTitle: 'Soft Life Cue',
+      quote: 'I am allowed to become the calmest, clearest version of myself.',
+      quoteCaption: 'Aura lifestyle mantra',
+      noteTitle: 'Mood Reset Checklist',
+      note: '[ ] Add one image that represents the energy you want to wake up with\n[ ] Add one texture, color, or room detail that makes the board feel personal\n[ ] Add one small ritual that supports this version of your day',
+      imageTitle: 'Soft Lifestyle Anchor',
+      imageQuery: 'soft morning apartment journal flowers coffee pastel natural light lifestyle',
+      imageCaption: 'A visual cue for a calmer, more intentional daily atmosphere.',
+      quoteColor: 'bg-rose-50 dark:bg-pink-950 border-rose-200 dark:border-pink-800',
+      noteColor: 'bg-purple-50 dark:bg-purple-950 border-purple-200 dark:border-purple-800'
+    };
+  }
+
+  if (containsAny(combined, ['travel', 'city', 'country', 'explore', 'trip', 'global', 'beach', 'mountain'])) {
+    return {
+      summary: 'travel, movement, and collecting new memories',
+      palette: ['#bfdbfe', '#fde68a', '#bbf7d0', '#f8fafc'],
+      quoteTitle: 'Next Stamp Energy',
+      quote: 'The world gets bigger every time I say yes to the next doorway.',
+      quoteCaption: 'Aura travel mantra',
+      noteTitle: 'Trip Texture Checklist',
+      note: '[ ] Add one city or landscape you want to wake up in\n[ ] Add one food, sound, or street detail from that place\n[ ] Add the first tiny planning step that makes it real',
+      imageTitle: 'Destination Mood',
+      imageQuery: 'sunlit european street cafe travel morning film photography',
+      imageCaption: 'A visual anchor for the version of you who keeps moving.',
+      quoteColor: 'bg-blue-50 dark:bg-indigo-950 border-blue-200 dark:border-indigo-800',
+      noteColor: 'bg-amber-50 dark:bg-amber-950 border-amber-200 dark:border-amber-800'
+    };
+  }
+
+  if (containsAny(combined, ['fitness', 'run', 'gym', 'triathlon', 'ironman', 'health', 'body', 'strength'])) {
+    return {
+      summary: 'discipline, body confidence, and athletic momentum',
+      palette: ['#dcfce7', '#cffafe', '#f8fafc', '#e0e7ff'],
+      quoteTitle: 'Strong Body Cue',
+      quote: 'I do not need perfect motivation; I need one kept promise.',
+      quoteCaption: 'Aura training mantra',
+      noteTitle: 'Training Board Add-ons',
+      note: '[ ] Add one image of the exact environment you train in\n[ ] Add one measurable milestone for this month\n[ ] Add one recovery ritual that makes consistency sustainable',
+      imageTitle: 'Training Atmosphere',
+      imageQuery: 'morning run athletic training sunlight minimalist wellness aesthetic',
+      imageCaption: 'A clean visual cue for strength that feels repeatable.',
+      quoteColor: 'bg-emerald-50 dark:bg-emerald-950 border-emerald-200 dark:border-emerald-800',
+      noteColor: 'bg-cyan-50 dark:bg-cyan-950 border-cyan-200 dark:border-cyan-800'
+    };
+  }
+
+  if (containsAny(combined, ['money', 'finance', 'career', 'business', 'job', 'study', 'school', 'exam', 'portfolio'])) {
+    return {
+      summary: 'ambition, stability, and building a future with receipts',
+      palette: ['#fef3c7', '#dbeafe', '#ecfdf5', '#faf5ff'],
+      quoteTitle: 'Future Proof',
+      quote: 'I am building evidence, not waiting for permission.',
+      quoteCaption: 'Aura ambition mantra',
+      noteTitle: 'Proof Stack',
+      note: '[ ] Add one visible symbol of the role or life you are building\n[ ] Add one concrete outcome you can finish this week\n[ ] Add one reminder of why this future matters to you',
+      imageTitle: 'Ambition Desk',
+      imageQuery: 'clean desk laptop notebook morning light career goals aesthetic',
+      imageCaption: 'A visual cue for focused, credible momentum.',
+      quoteColor: 'bg-amber-50 dark:bg-amber-950 border-amber-200 dark:border-amber-800',
+      noteColor: 'bg-indigo-50 dark:bg-indigo-950 border-indigo-200 dark:border-indigo-800'
+    };
+  }
+
+  return {
+    summary: `the mood and intention behind "${displayTitle}"`,
+    palette: ['#c4b5fd', '#a5b4fc', '#f8fafc', '#fbcfe8'],
+    quoteTitle: 'Board Mantra',
+    quote: `I can make "${displayTitle}" visible through one honest detail at a time.`,
+    quoteCaption: 'Aura affirmation',
+    noteTitle: 'Make It Specific',
+    note: '[ ] Add one object that belongs in this exact vision\n[ ] Add one sentence that explains why it matters\n[ ] Add one image with a clear place, texture, or mood',
+    imageTitle: 'Mood Anchor',
+    imageQuery: `${displayTitle} aesthetic natural light mood board detail`,
+    imageCaption: "A specific visual anchor for this board's atmosphere.",
+    quoteColor: 'bg-indigo-50 dark:bg-indigo-950 border-indigo-200 dark:border-indigo-800',
+    noteColor: 'bg-emerald-50 dark:bg-emerald-950 border-emerald-200 dark:border-emerald-800'
+  };
+}
+
+function containsAny(value, terms) {
+  return terms.some(term => value.includes(term));
 }
 
 function getAiSuggestionKey(item) {
@@ -2043,47 +2307,39 @@ function setupGalleryHandlers() {
   function buildLocalGalleryFallback(themeStr) {
     const cleanTheme = String(themeStr || 'dream board').trim();
     const seed = Array.from(cleanTheme.toLowerCase()).reduce((sum, char) => sum + char.charCodeAt(0), cleanTheme.length);
-    const paletteSets = [
-      ['#f8fafc', '#ecfdf5', '#fffbeb', '#fff1f2'],
-      ['#faf5ff', '#e0f2fe', '#fef3c7', '#dcfce7'],
-      ['#f5f3ff', '#cffafe', '#fce7f3', '#f7fee7'],
-      ['#eef2ff', '#f0fdfa', '#fff7ed', '#fdf2f8']
-    ];
-    const toneWords = ['soft', 'focused', 'playful', 'minimal', 'bright', 'calm'];
-    const verbs = ['shape', 'curate', 'build', 'anchor', 'sketch', 'refine'];
-    const objects = ['workspace', 'mood board', 'daily ritual', 'visual system', 'inspiration corner', 'planning desk'];
-    const palette = paletteSets[seed % paletteSets.length];
+    const theme = getLocalThemeProfile(cleanTheme);
+    const toneWords = ['cinematic', 'soft', 'warm', 'clean', 'dreamy', 'grounded'];
+    const palette = theme.palette;
     const tone = toneWords[seed % toneWords.length];
-    const verb = verbs[(seed + 2) % verbs.length];
-    const object = objects[(seed + 4) % objects.length];
 
     return {
       theme: cleanTheme,
-      description: `Live AI generation is unavailable, so Aura prepared a local ${tone} concept kit for "${cleanTheme}". Use it as a starting point, then regenerate after Gemini is connected for fully bespoke ideas.`,
-      quote: `Small details make the vision feel real: ${verb} one ${object} at a time.`,
+      description: `Live AI generation is unavailable, so Aura prepared a local ${tone} kit for ${theme.summary}. Use it as a starting point, then regenerate after Gemini is connected for fully bespoke ideas.`,
+      quote: theme.quote,
       colorPalette: palette,
       suggestedItems: [
         {
           type: 'quote',
-          title: `${cleanTheme} Mantra`,
-          content: `Design the next version of "${cleanTheme}" through one visible detail, one useful habit, and one space that makes starting easy.`,
-          color: 'bg-indigo-50 dark:bg-indigo-950 border-indigo-200 dark:border-indigo-800',
+          title: theme.quoteTitle,
+          content: theme.quote,
+          caption: theme.quoteCaption,
+          color: theme.quoteColor,
           width: 30,
           height: 25
         },
         {
           type: 'note',
-          title: `${cleanTheme} Actions`,
-          content: `[ ] Save three references for the ${tone} look\n[ ] Choose one color and one material cue\n[ ] Add a tiny daily ritual that belongs in this vision`,
-          color: 'bg-emerald-50 dark:bg-emerald-950 border-emerald-200 dark:border-emerald-800',
-          width: 25,
+          title: theme.noteTitle,
+          content: theme.note,
+          color: theme.noteColor,
+          width: 30,
           height: 30
         },
         {
           type: 'image',
-          title: `${tone} ${object}`,
-          content: `${cleanTheme} ${tone} ${object} natural light aesthetic`,
-          caption: `A visual direction for ${cleanTheme}.`,
+          title: theme.imageTitle,
+          content: theme.imageQuery,
+          caption: theme.imageCaption,
           width: 40,
           height: 45
         }
