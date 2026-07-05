@@ -9,7 +9,8 @@ namespace DigitalVisionBoard.Models
     public record RegisterRequest(
         [param: Required, StrictEmailAddress, StringLength(254)] string Email,
         [param: Required, MinLength(8), StringLength(128)] string Password,
-        [param: Required, StringLength(80, MinimumLength = 2)] string Name
+        [param: Required, StringLength(80, MinimumLength = 2)] string Name,
+        [param: Required, StringLength(31, MinimumLength = 3), RegularExpression("^@?[A-Za-z0-9_.]+$")] string Username
     );
 
     public record LoginRequest(

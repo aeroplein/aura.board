@@ -162,9 +162,10 @@ export function setupAuthForm({
     const email = document.getElementById('auth-input-email').value;
     const password = document.getElementById('auth-input-password').value;
     const name = document.getElementById('auth-input-name').value;
+    const username = document.getElementById('auth-input-username')?.value.trim().replace(/^@+/, '');
 
     const endpoint = isRegisterMode ? '/api/auth/register' : '/api/auth/login';
-    const bodyObj = isRegisterMode ? { email, password, name } : { email, password };
+    const bodyObj = isRegisterMode ? { email, password, name, username } : { email, password };
 
     try {
       const res = await fetchWithCredentials(endpoint, {
@@ -202,18 +203,24 @@ export function setupAuthForm({
 
 export function toggleAuthMode(regMode) {
   const nameGroup = document.getElementById('group-auth-name');
+  const usernameGroup = document.getElementById('group-auth-username');
   const title = document.getElementById('authModalTitle');
+  const intro = document.getElementById('auth-modal-intro');
   const toggleBtn = document.getElementById('btn-toggle-auth-mode');
   const submitBtn = document.getElementById('btn-auth-submit');
 
   if (regMode) {
     nameGroup.classList.remove('d-none');
+    usernameGroup?.classList.remove('d-none');
     title.textContent = 'Curate in aura.board';
+    if (intro) intro.textContent = 'Choose the name and handle that will live on your creative workspace.';
     toggleBtn.innerHTML = 'Already curating? <strong class="text-[#5E548E]">Sign In</strong>';
     submitBtn.textContent = 'Assemble Workspace';
   } else {
     nameGroup.classList.add('d-none');
+    usernameGroup?.classList.add('d-none');
     title.textContent = 'Welcome back to aura.';
+    if (intro) intro.textContent = 'Sign back into the studio that already knows your boards, theme, and profile.';
     toggleBtn.innerHTML = 'New to the studio? <strong class="text-[#5E548E]">Sign Up</strong>';
     submitBtn.textContent = 'Unlock Canvas Gate';
   }
@@ -239,6 +246,10 @@ function getFriendlyAuthError(message) {
 
   if (lowerMessage.includes('not allowed')) {
     return 'Please use a different email address.';
+  }
+
+  if (lowerMessage.includes('username') && lowerMessage.includes('taken')) {
+    return 'That username is already taken. Try a small variation.';
   }
 
   return message;

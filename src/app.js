@@ -1828,12 +1828,22 @@ function setupAuthValidationGuard() {
 
 function getAuthValidationState() {
   const nameInput = document.getElementById('auth-input-name');
+  const usernameInput = document.getElementById('auth-input-username');
   const emailInput = document.getElementById('auth-input-email');
   const passwordInput = document.getElementById('auth-input-password');
   const isRegisterMode = !document.getElementById('group-auth-name')?.classList.contains('d-none');
 
   if (isRegisterMode && !nameInput?.value.trim()) {
     return { input: nameInput, message: 'Add your name to create the workspace.' };
+  }
+
+  const username = String(usernameInput?.value || '').trim().replace(/^@+/, '');
+  if (isRegisterMode && !username) {
+    return { input: usernameInput, message: 'Choose a username for your workspace badge.' };
+  }
+
+  if (isRegisterMode && !/^[A-Za-z0-9_.]{3,30}$/.test(username)) {
+    return { input: usernameInput, message: 'Username can use 3-30 letters, numbers, underscores, or dots.' };
   }
 
   if (!emailInput?.value.trim()) {

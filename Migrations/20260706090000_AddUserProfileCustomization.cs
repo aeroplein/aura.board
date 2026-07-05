@@ -23,11 +23,22 @@ namespace DigitalVisionBoard.Migrations
                 type: "character varying(30)",
                 maxLength: 30,
                 nullable: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Users_Username",
+                table: "Users",
+                column: "Username",
+                unique: true,
+                filter: "\"Username\" IS NOT NULL");
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.DropIndex(
+                name: "IX_Users_Username",
+                table: "Users");
+
             migrationBuilder.DropColumn(
                 name: "AvatarUrl",
                 table: "Users");

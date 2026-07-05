@@ -259,6 +259,10 @@ namespace DigitalVisionBoard.Migrations
                     b.HasIndex("EmailVerificationToken")
                         .IsUnique();
 
+                    b.HasIndex("Username")
+                        .IsUnique()
+                        .HasFilter("\"Username\" IS NOT NULL");
+
                     b.ToTable("Users");
                 });
 

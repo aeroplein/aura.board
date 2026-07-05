@@ -3,6 +3,7 @@ using DigitalVisionBoard.Models;
 using DigitalVisionBoard.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 
 namespace DigitalVisionBoard.Controllers
@@ -147,7 +148,7 @@ namespace DigitalVisionBoard.Controllers
             var cleanName = request.Name.Trim();
             var cleanUsername = string.IsNullOrWhiteSpace(request.Username)
                 ? null
-                : request.Username.Trim().TrimStart('@');
+                : AuthService.NormalizeUsername(request.Username);
             var cleanAvatarUrl = string.IsNullOrWhiteSpace(request.AvatarUrl)
                 ? null
                 : request.AvatarUrl.Trim();
@@ -156,6 +157,12 @@ namespace DigitalVisionBoard.Controllers
                 !System.Text.RegularExpressions.Regex.IsMatch(cleanUsername, "^[A-Za-z0-9_.]{3,30}$"))
             {
                 return BadRequest(new { error = "Username can use 3-30 letters, numbers, underscores, or dots." });
+            }
+
+            if (cleanUsername != null &&
+                await _context.Users.AnyAsync(u => u.Id != user.Id && u.Username == cleanUsername))
+            {
+                return Conflict(new { error = "That username is already taken." });
             }
 
             user.Name = cleanName;

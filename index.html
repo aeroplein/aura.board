@@ -1356,7 +1356,7 @@
           <h2 class="fs-3 font-extrabold text-[#5E548E] d-flex align-items-center gap-1.5 mb-1">
             <i data-lucide="settings" class="w-7 h-7 text-[#9F86C0]"></i> User Settings
           </h2>
-          <p class="text-sm text-[#5E548E]/80">Review your profile, preferences, AI privacy notes, and current session controls.</p>
+          <p class="text-sm text-[#5E548E]/80">Make the workspace feel like yours: name, handle, photo, preferences, and session controls.</p>
         </div>
 
         <div class="row g-4">
@@ -1385,6 +1385,7 @@
                 <!-- Profile summary -->
                 <div class="p-3 rounded-2xl bg-white/50 dark:bg-black/10 border border-[#C8B6FF]/25">
                   <span class="font-sans font-bold text-[#5E548E] block">Profile Summary</span>
+                  <span id="settings-profile-welcome" class="text-[11px] text-[#5E548E]/80 block font-sans mt-1">Your profile belongs here.</span>
                   <span id="settings-profile-name" class="text-[11px] text-[#9F86C0] block font-sans mt-1">-</span>
                   <span id="settings-profile-username" class="text-[10px] text-[#9F86C0] block font-mono">-</span>
                   <span id="settings-profile-email" class="text-[10px] text-[#9F86C0] block font-mono break-all">-</span>
@@ -1397,7 +1398,8 @@
                       --
                     </div>
                     <div class="min-w-0">
-                      <span class="font-bold text-[#5E548E] block">Profile Picture</span>
+                      <span class="font-bold text-[#5E548E] block">Profile Photo</span>
+                      <span id="settings-avatar-status" class="text-[10px] text-[#9F86C0] block">Using initials</span>
                       <span class="text-[10px] text-[#9F86C0] block">Upload a small JPG, PNG, WebP, or GIF for your account badge.</span>
                     </div>
                   </div>
@@ -1415,7 +1417,7 @@
 
                   <input type="hidden" id="settings-profile-avatar-url" />
                   <div>
-                    <label for="settings-profile-avatar-file" class="form-label font-bold text-[#5E548E]/80 font-mono text-[10px] uppercase mb-1">Upload Profile Picture</label>
+                    <label for="settings-profile-avatar-file" class="form-label font-bold text-[#5E548E]/80 font-mono text-[10px] uppercase mb-1">Change Profile Photo</label>
                     <input type="file" id="settings-profile-avatar-file" class="form-control rounded-xl border-[#C8B6FF]/35 bg-white/60 text-xs py-1.5 text-[#5E548E]" accept="image/*" />
                   </div>
 
@@ -1607,7 +1609,7 @@
               <i data-lucide="sparkles" class="w-6 h-6"></i>
             </div>
             <h3 class="modal-title fs-4 font-bold" id="authModalTitle">Welcome to aura.</h3>
-            <p class="text-xs text-[#9F86C0] mt-1">Immersive multi-mode thinking tools. Select access model:</p>
+            <p id="auth-modal-intro" class="text-xs text-[#9F86C0] mt-1">Choose the name and handle that will live on your creative workspace.</p>
           </div>
           <div class="modal-body py-3">
             
@@ -1618,6 +1620,15 @@
               <div id="group-auth-name">
                 <label for="auth-input-name" class="form-label text-xs font-bold font-mono text-[#5E548E]/80">Full Name</label>
                 <input type="text" id="auth-input-name" class="form-control rounded-xl border-[#C8B6FF]/35 bg-[#F8F7FF] text-xs py-2 text-[#5E548E] font-medium" placeholder="E.g. Pelin Kaya" />
+              </div>
+
+              <div id="group-auth-username">
+                <label for="auth-input-username" class="form-label text-xs font-bold font-mono text-[#5E548E]/80">Username</label>
+                <div class="input-group input-group-sm">
+                  <span class="input-group-text rounded-start-xl border-[#C8B6FF]/35 bg-white/70 text-[#9F86C0] font-bold">@</span>
+                  <input type="text" id="auth-input-username" class="form-control rounded-end-xl border-[#C8B6FF]/35 bg-[#F8F7FF] text-xs py-2 text-[#5E548E] font-medium" placeholder="pelincreates" maxlength="30" autocomplete="username" />
+                </div>
+                <p class="text-[10px] text-[#9F86C0] mt-1 mb-0">This appears on your profile badge and can be changed later.</p>
               </div>
 
               <div>

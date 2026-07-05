@@ -46,15 +46,18 @@ function getUserInitials(user) {
 
 function renderAvatarPreview(user, avatarUrl = user?.avatarUrl) {
   const preview = document.getElementById('settings-avatar-preview');
+  const status = document.getElementById('settings-avatar-status');
   if (!preview) return;
 
   const cleanAvatarUrl = String(avatarUrl || '').trim();
   if (cleanAvatarUrl) {
     preview.innerHTML = `<img src="${escapeHtml(cleanAvatarUrl)}" alt="${escapeHtml(user?.name || 'Profile')} profile picture preview" class="w-full h-full object-cover" referrerpolicy="no-referrer" />`;
+    if (status) status.textContent = 'Custom photo selected';
     return;
   }
 
   preview.textContent = getUserInitials(user);
+  if (status) status.textContent = 'Using initials';
 }
 
 export function renderUserSettings({ getCurrentUser }) {
@@ -70,9 +73,14 @@ export function renderUserSettings({ getCurrentUser }) {
   const nameEl = document.getElementById('settings-profile-name');
   const usernameEl = document.getElementById('settings-profile-username');
   const emailEl = document.getElementById('settings-profile-email');
+  const welcomeEl = document.getElementById('settings-profile-welcome');
   if (nameEl) nameEl.textContent = user.name || 'Aura user';
   if (usernameEl) usernameEl.textContent = user.username ? `@${user.username}` : 'No username yet';
   if (emailEl) emailEl.textContent = user.email || 'No email available';
+  if (welcomeEl) {
+    const handle = user.username ? `@${user.username}` : 'your creative handle';
+    welcomeEl.textContent = `${user.name || 'Your profile'} belongs here as ${handle}.`;
+  }
   const displayNameInput = document.getElementById('settings-profile-display-name');
   const usernameInput = document.getElementById('settings-profile-username-input');
   const avatarUrlInput = document.getElementById('settings-profile-avatar-url');

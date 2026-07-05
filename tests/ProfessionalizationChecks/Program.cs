@@ -11,6 +11,7 @@ var checks = new List<(string Name, Action Check)>
     ("BoardService normalizes collaborators and item types", CheckBoardServiceNormalization),
     ("ImageStorageService rejects invalid upload payloads before database writes", CheckImageUploadValidation),
     ("Strict email validation rejects malformed domains", CheckStrictEmailValidation),
+    ("Profile identity normalizes usernames and carries avatar fields", CheckProfileIdentityContracts),
     ("SyncResponse exposes diagnostics without breaking board payloads", CheckSyncResponseDiagnostics)
 };
 
@@ -135,6 +136,25 @@ static void CheckStrictEmailValidation()
     Assert(!validator.IsValid("person@example"), "Email without TLD should fail.");
     Assert(!validator.IsValid("person@x.com"), "Too-short domain label should fail.");
     Assert(!validator.IsValid("person@example.c1"), "Non-letter TLD should fail.");
+}
+
+static void CheckProfileIdentityContracts()
+{
+    Assert(AuthService.NormalizeUsername(" @Pelin.Creates ") == "pelin.creates", "Username should trim @ and normalize case.");
+
+    var response = new UserResponse(
+        Guid.NewGuid(),
+        "person@example.com",
+        "Person Example",
+        "person.example",
+        "/api/images/profile",
+        new UserPreferencesDto(false, true, false));
+
+    Assert(response.Username == "person.example", "User response should expose username.");
+    Assert(response.AvatarUrl == "/api/images/profile", "User response should expose avatar URL.");
+
+    var request = new RegisterRequest("person@example.com", "portfolio-pass-123", "Person Example", "@person.example");
+    Assert(request.Username == "@person.example", "Registration should accept the selected username.");
 }
 
 static void CheckSyncResponseDiagnostics()

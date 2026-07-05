@@ -132,6 +132,11 @@ namespace DigitalVisionBoard.Data
                 .HasIndex(u => u.EmailVerificationToken)
                 .IsUnique();
 
+            modelBuilder.Entity<User>()
+                .HasIndex(u => u.Username)
+                .IsUnique()
+                .HasFilter("\"Username\" IS NOT NULL");
+
             // Configure BoardCollaborator composite primary key
             modelBuilder.Entity<BoardCollaborator>()
                 .HasKey(bc => new { bc.BoardId, bc.CollaboratorEmail });
