@@ -9,7 +9,8 @@
     "dev:backend": "dotnet run",
     "build": "vite build",
     "clean": "node scripts/clean-build.mjs",
-    "lint": "node scripts/lint.mjs"
+    "lint": "node scripts/lint.mjs",
+    "test:professionalization": "dotnet run --project tests/ProfessionalizationChecks/ProfessionalizationChecks.csproj"
   },
   "dependencies": {
     "@google/genai": "^1.29.0",

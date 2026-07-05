@@ -1,3 +1,5 @@
+import { parseJsonResponse } from '../services/apiClient.js';
+
 let activeSyncQueue = [];
 
 export async function processSyncAction(action, boardId, itemId, payload, {
@@ -28,21 +30,29 @@ export async function processSyncAction(action, boardId, itemId, payload, {
       })
     });
 
+    const data = await parseJsonResponse(res, 'Sync returned an unexpected response.');
+
     if (res.ok) {
-      const data = await res.json();
       if (data.success) {
         activeSyncQueue = [];
         setBoards(data.boards || []);
-        showSyncBanner('Sync completed. Cloud database update verified.', false);
+        const skippedCount = data.skippedCount || 0;
+        if (skippedCount > 0) {
+          const firstWarning = data.warnings?.[0] || `${skippedCount} sync action(s) were skipped.`;
+          showSyncBanner(`Sync completed with ${skippedCount} warning(s): ${firstWarning}`, true);
+        } else {
+          showSyncBanner(`Sync completed. ${data.appliedCount || 0} cloud update(s) verified.`, false);
+        }
         refreshStudioDisplay();
       }
     } else {
-      throw new Error('Sync returned error status.');
+      throw new Error(data?.error || 'Sync returned error status.');
     }
   } catch (err) {
-    document.getElementById('offline-pill').classList.remove('hidden');
-    document.getElementById('offline-pill').classList.add('flex');
-    showSyncBanner('Offline mode toggled. Action saved in local cache.', true);
+    const offlinePill = document.getElementById('offline-pill');
+    offlinePill?.classList.remove('hidden');
+    offlinePill?.classList.add('flex');
+    showSyncBanner('Sync is pending in this browser session. Keep this tab open and retry when the server is reachable.', true);
   }
 }
 

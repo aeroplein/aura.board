@@ -63,6 +63,39 @@ Passwords use PBKDF2-SHA512 with 210,000 iterations for new hashes. Older 1,000-
 
 Invalid login attempts return the same generic error for unknown emails and wrong passwords. This keeps the API simple while avoiding account enumeration in a student-project-friendly way.
 
+Email verification fields are present for professional account hygiene. SMTP is optional, so local development can still run without a mail server.
+
+## Sync Engine
+
+Canvas item changes are persisted through `POST /api/sync`. The frontend keeps a short in-memory queue for the current browser session, sends queued actions to the backend, and updates the local board list from the server response.
+
+The sync response includes diagnostic fields: `appliedCount`, `skippedCount`, `warnings`, and `skippedActions`. These make stale item updates, unsupported actions, missing payloads, malformed payloads, and unauthorized board actions visible instead of silently disappearing.
+
+This is intentionally a lightweight sync model for a portfolio project. It is not a durable offline-first engine; pending actions survive only while the current tab/session remains open.
+
+## Database Schema
+
+Core EF Core entities:
+
+- `Users`: account identity, password hash/salt, email verification fields, and preferences.
+- `Boards`: owner-scoped vision board metadata and share status.
+- `BoardItems`: draggable quote, note, image, and text cards with layout coordinates and z-index.
+- `BoardCollaborators`: normalized email-based board sharing.
+- `ImageFiles`: database-backed base64 image uploads served through `/api/images/{id}`.
+- `ActivityLogs`: recent collaboration feed entries for board/item activity.
+
+Important constraints include unique user email, composite collaborator key, board/item cascade deletes, item type checks, positive item sizes, and indexed board/activity lookups.
+
+## AI Integration
+
+Gemini powers `/api/board/recommendations` and `/api/inspiration` when `GEMINI_API_KEY` is configured. If Gemini is unavailable or not configured, the backend returns local fallback ideas so the app remains demoable.
+
+The frontend validates AI-generated items before adding them to a board: unsupported item shapes are skipped, item types are normalized, titles/captions/colors are bounded, and card dimensions are clamped to safe canvas ranges.
+
+## Security Honesty
+
+The app uses real password hashing and HttpOnly cookie sessions, but it does not claim enterprise security. The note "shield" feature is reversible local obfuscation for a portfolio demo, not production-grade encryption. The README and UI describe it as obfuscation to avoid overstating the privacy guarantees.
+
 ## Portfolio Highlights
 
 ### Architecture Highlights
@@ -145,6 +178,8 @@ Run the backend:
 npm run dev:backend
 ```
 
+Local development uses the `Development` launch profile, which keeps advanced email validation enabled but skips DNS MX checks so demo/test registrations are not blocked by offline DNS or non-deliverable test domains. The base `appsettings.json` keeps `AdvancedEmailValidation:RequireMxRecord` enabled for production-style runs.
+
 Run the frontend dev server separately if needed:
 
 ```bash
@@ -203,20 +238,26 @@ npm run dev
 npm run dev:backend
 npm run build
 npm run clean
+npm run lint
+npm run test:professionalization
 ```
 
 `npm run clean` removes generated build folders only: `wwwroot`, `dist`, `bin`, and `obj`. It deliberately preserves `data/` and `data/uploads/`.
+
+`npm run test:professionalization` runs a lightweight .NET console check project covering password hashing behavior, board permission helpers, upload rejection paths, strict email validation, and sync response diagnostics without requiring external test packages.
 
 ## Known Limitations
 
 - JWT login is simple and does not include refresh tokens.
 - The project does not use ASP.NET Identity.
 - Collaboration is intentionally lightweight.
+- Sync retry state is in-memory for the current browser session; it is not durable offline storage.
 - Uploaded images are stored in PostgreSQL as base64 records and served through `/api/images/{id}`.
 - The legacy `/data/uploads` static-file path may exist for compatibility, but uploaded user files are not required for the current database-backed image flow.
 - Image storage is intentionally simple for the course project. At larger scale, image metadata should stay in the database while binary files move to disk or object storage.
 - Activity logs power the board activity feed; they are not intended to be a durable production audit log.
 - AI output uses Gemini when `GEMINI_API_KEY` is configured and falls back to local sample suggestions when it is missing.
+- The memo shield feature is reversible local obfuscation, not production encryption.
 - There is no full production observability or CI/CD pipeline.
 
 These limits are intentional for a student portfolio/course project and keep the code understandable at small scale.

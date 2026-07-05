@@ -1,3 +1,10 @@
+import { parseJsonResponse } from '../services/apiClient.js';
+import { showConfirmDialog } from '../ui/confirmDialog.js';
+
+function isLikelyEmail(value) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(value || '').trim());
+}
+
 export function setupBoardForm({
   fetchWithCredentials,
   boardModalObj,
@@ -32,6 +39,12 @@ export function setupBoardForm({
       .split(',')
       .map(s => s.trim())
       .filter(Boolean);
+    const invalidCollaborators = collaborators.filter(email => !isLikelyEmail(email));
+
+    if (isShared && invalidCollaborators.length > 0) {
+      showSyncBanner(`Please fix collaborator email: ${invalidCollaborators[0]}`, true);
+      return;
+    }
 
     let method = 'POST';
     let url = '/api/boards';
@@ -64,11 +77,11 @@ export function setupBoardForm({
         },
         body: JSON.stringify(payload)
       });
+      const resultBoard = await parseJsonResponse(res, 'Could not save this board. Please check the required fields and try again.');
 
       if (res.ok) {
-        const resultBoard = await res.json();
         let inviteMessage = '';
-        if (isShared && collaborators.length > 0 && resultBoard.id) {
+        if (isShared && collaborators.length > 0 && resultBoard?.id) {
           inviteMessage = await sendBoardInvites(resultBoard.id, { fetchWithCredentials });
         }
 
@@ -76,10 +89,10 @@ export function setupBoardForm({
         fetchUserBoards();
         showSyncBanner(inviteMessage || 'Workspace changes pushed successfully.', false);
       } else {
-        showSyncBanner('Could not save this board. Please check the required fields and try again.', true);
+        showSyncBanner(resultBoard?.error || 'Could not save this board. Please check the required fields and try again.', true);
       }
     } catch (e) {
-      showSyncBanner('Could not reach the server to save this board. Try again when you are online.', true);
+      showSyncBanner(e.message || 'Could not reach the server to save this board. Try again when you are online.', true);
     } finally {
       if (submitBtn) {
         submitBtn.disabled = false;
@@ -93,7 +106,14 @@ export function setupBoardForm({
     const deleteBtn = document.getElementById('btn-delete-board');
     if (!bid) return;
 
-    if (!confirm('Are you absolutely certain you want to purge this board? This action is irreversible.')) return;
+    const confirmed = await showConfirmDialog({
+      eyebrow: 'Permanent canvas action',
+      title: 'Wipe this board?',
+      message: 'This will permanently delete the board and every card inside it. This action cannot be undone.',
+      confirmText: 'Wipe board',
+      cancelText: 'Keep editing'
+    });
+    if (!confirmed) return;
 
     try {
       if (deleteBtn) {
@@ -103,6 +123,7 @@ export function setupBoardForm({
       const res = await fetchWithCredentials(`/api/boards/${bid}`, {
         method: 'DELETE'
       });
+      const data = await parseJsonResponse(res, 'Could not delete this board. Please try again.');
 
       if (res.ok) {
         boardModalObj.hide();
@@ -111,10 +132,10 @@ export function setupBoardForm({
         showTab('home');
         showSyncBanner('Board deleted.', false);
       } else {
-        showSyncBanner('Could not delete this board. Please try again.', true);
+        showSyncBanner(data?.error || 'Could not delete this board. Please try again.', true);
       }
     } catch (e) {
-      showSyncBanner('Could not reach the server to delete this board.', true);
+      showSyncBanner(e.message || 'Could not reach the server to delete this board.', true);
     } finally {
       if (deleteBtn) {
         deleteBtn.disabled = false;
@@ -129,10 +150,10 @@ export async function sendBoardInvites(boardId, { fetchWithCredentials }) {
     const res = await fetchWithCredentials(`/api/boards/${boardId}/invite`, {
       method: 'POST'
     });
-    const data = await res.json();
+    const data = await parseJsonResponse(res, 'Invitation email could not be prepared.');
 
     if (!res.ok) {
-      return 'Workspace saved, but invitation email could not be prepared.';
+      return data?.error || 'Workspace saved, but invitation email could not be prepared.';
     }
 
     if (!data.configured) {

@@ -961,8 +961,8 @@
         }
       }
     </style>
-    <script type="module" crossorigin src="/assets/index-x1e2mTZc.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-BhvBNYlP.css">
+    <script type="module" crossorigin src="/assets/index-sBZHrxG4.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-BIbm_CSu.css">
   </head>
   <body class="font-sans text-[#5E548E] dark:text-[#FFF] relative min-h-screen">
 
@@ -1646,14 +1646,13 @@
                   <select id="item-image-source-mode" class="form-select rounded-xl border-[#C8B6FF]/35 bg-white/50 text-xs py-1.5 text-[#5E548E]">
                     <option value="keyword">Keyword or direct image URL</option>
                     <option value="upload">Upload local file</option>
-                    <option value="pinterest">Pinterest image link</option>
                   </select>
                 </div>
 
                 <div id="item-image-pinterest-wrapper" class="d-none space-y-1.5">
-                  <label class="form-label font-bold text-[#5E548E]/80 font-mono text-[10px] uppercase mb-0">Pinterest Image Link</label>
-                  <input type="url" id="item-field-pinterest-url" class="form-control rounded-xl border-[#C8B6FF]/35 bg-white/50 text-xs py-1.5 text-[#5E548E]" placeholder="Paste a Pinterest image address, e.g. https://i.pinimg.com/..." />
-                  <p class="text-[10px] text-[#9F86C0] mb-0 leading-relaxed">Use a direct Pinterest image address when possible. Regular pin pages may show the fallback preview.</p>
+                  <label class="form-label font-bold text-[#5E548E]/80 font-mono text-[10px] uppercase mb-0">Direct Image URL</label>
+                  <input type="url" id="item-field-pinterest-url" class="form-control rounded-xl border-[#C8B6FF]/35 bg-white/50 text-xs py-1.5 text-[#5E548E]" placeholder="Paste a direct image address, e.g. https://i.pinimg.com/...jpg" />
+                  <p class="text-[10px] text-[#9F86C0] mb-0 leading-relaxed">Pinterest board/page links cannot render as images. Use a direct image file URL, keywords, or upload the image file.</p>
                 </div>
 
                 <div id="item-image-local-upload-wrapper" class="space-y-1.5">
@@ -1675,7 +1674,7 @@
 
               <div class="mt-2">
                 <label class="form-label font-bold text-[#5E548E]/80 font-mono text-[10px] uppercase" id="item-label-content">Card Content / Image Keyword</label>
-                <textarea id="item-field-content" class="form-control rounded-xl text-xs border-[#C8B6FF]/45 text-[#5E548E]" rows="3" placeholder="Write text details, image keywords, an image URL, or a Pinterest image link" required></textarea>
+                <textarea id="item-field-content" class="form-control rounded-xl text-xs border-[#C8B6FF]/45 text-[#5E548E]" rows="3" placeholder="Write text details, image keywords, or a direct image URL" required></textarea>
               </div>
 
               <!-- Extra caption/author if image/quote -->

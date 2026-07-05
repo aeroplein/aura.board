@@ -11,6 +11,9 @@ namespace DigitalVisionBoard.Models
         public required string Name { get; set; }
         public required string PasswordHash { get; set; }
         public required string Salt { get; set; }
+        public bool IsEmailVerified { get; set; } = false;
+        public string? EmailVerificationToken { get; set; }
+        public DateTime? EmailVerificationExpires { get; set; }
 
         // User Preferences stored flat in the same table
         public bool DarkMode { get; set; } = false;

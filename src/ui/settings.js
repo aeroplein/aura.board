@@ -1,3 +1,6 @@
+import { parseJsonResponse } from '../services/apiClient.js';
+import { showConfirmDialog } from './confirmDialog.js';
+
 const DEFAULT_PREFERENCES = {
   darkMode: false,
   notificationsEnabled: true,
@@ -85,9 +88,9 @@ export function setupSettingsHandlers({
         body: JSON.stringify(nextPreferences)
       });
 
-      const data = await res.json();
+      const data = await parseJsonResponse(res, 'Preference update failed.');
       if (!res.ok) {
-        throw new Error(data.error || 'Preference update failed.');
+        throw new Error(data?.error || 'Preference update failed.');
       }
 
       const savedPreferences = data.preferences || nextPreferences;
@@ -156,8 +159,16 @@ export function setupSettingsHandlers({
     );
   });
 
-  logoutBtn?.addEventListener('click', () => {
-    if (confirm('Are you absolutely certain you want to purge local Cache registry? All temporary session keys will be wiped.')) {
+  logoutBtn?.addEventListener('click', async () => {
+    const confirmed = await showConfirmDialog({
+      eyebrow: 'Local session cleanup',
+      title: 'Wipe local cache?',
+      message: 'This clears temporary session keys from this browser. Your saved boards stay in the cloud database.',
+      confirmText: 'Wipe cache',
+      cancelText: 'Not now'
+    });
+
+    if (confirmed) {
       handleLogout();
     }
   });

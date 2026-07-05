@@ -189,6 +189,152 @@ body,
   box-shadow: 0 0 0 3px rgba(255, 214, 231, 0.72) !important;
 }
 
+.app-confirm-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background:
+    radial-gradient(circle at 50% 35%, rgba(200, 182, 255, 0.24), transparent 34%),
+    rgba(20, 18, 29, 0.58);
+  backdrop-filter: blur(9px);
+  opacity: 0;
+  transition: opacity 140ms ease;
+}
+
+.app-confirm-overlay-visible {
+  opacity: 1;
+}
+
+.app-confirm-overlay-leaving {
+  opacity: 0;
+}
+
+.app-confirm-dialog {
+  position: relative;
+  width: min(420px, 100%);
+  padding: 1.35rem;
+  color: #4d4478;
+  text-align: center;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(248, 245, 255, 0.94));
+  border: 1px solid rgba(200, 182, 255, 0.56);
+  border-radius: 1.5rem;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.9) inset,
+    0 28px 70px -28px rgba(43, 38, 64, 0.72);
+  transform: translateY(10px) scale(0.98);
+  transition: transform 160ms ease;
+}
+
+.app-confirm-overlay-visible .app-confirm-dialog {
+  transform: translateY(0) scale(1);
+}
+
+.app-confirm-close {
+  position: absolute;
+  top: 0.85rem;
+  right: 0.85rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  color: #5E548E;
+  background: rgba(255, 255, 255, 0.58);
+  border: 1px solid rgba(200, 182, 255, 0.44);
+  border-radius: 999px;
+}
+
+.app-confirm-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 3rem;
+  height: 3rem;
+  margin-bottom: 0.85rem;
+  color: #fff;
+  background: linear-gradient(135deg, #FF7DAA, #9F86C0);
+  border-radius: 1.1rem;
+  box-shadow: 0 14px 30px -14px rgba(147, 75, 119, 0.85);
+}
+
+.app-confirm-eyebrow {
+  margin: 0 0 0.35rem;
+  color: #9F86C0;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.app-confirm-dialog h3 {
+  margin: 0;
+  color: #4d4478;
+  font-size: 1.35rem;
+  font-weight: 800;
+}
+
+.app-confirm-dialog p:last-of-type {
+  max-width: 21rem;
+  margin: 0.7rem auto 0;
+  color: rgba(77, 68, 120, 0.76);
+  font-size: 0.86rem;
+  font-weight: 650;
+  line-height: 1.55;
+}
+
+.app-confirm-actions {
+  display: flex;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+}
+
+.app-confirm-actions button {
+  min-width: 7.5rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.95rem;
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.app-confirm-cancel {
+  color: #5E548E;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(200, 182, 255, 0.6);
+}
+
+.app-confirm-confirm {
+  color: #fff;
+  background: linear-gradient(135deg, #D94E7C, #6F5AA7);
+  border: 1px solid rgba(111, 90, 167, 0.22);
+  box-shadow: 0 14px 28px -16px rgba(111, 90, 167, 0.88);
+}
+
+.dark .app-confirm-dialog {
+  color: #EEE9FF;
+  background: linear-gradient(145deg, rgba(31, 27, 45, 0.98), rgba(18, 16, 28, 0.96));
+  border-color: rgba(200, 182, 255, 0.32);
+}
+
+.dark .app-confirm-dialog h3 {
+  color: #F4F0FF;
+}
+
+.dark .app-confirm-dialog p:last-of-type {
+  color: rgba(230, 225, 255, 0.78);
+}
+
+.dark .app-confirm-cancel,
+.dark .app-confirm-close {
+  color: #E8E1FF;
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(200, 182, 255, 0.25);
+}
+
 .draggable-card {
   background-color: rgba(255, 255, 255, 0.9);
   border-color: rgba(200, 182, 255, 0.3) !important;
@@ -198,6 +344,34 @@ body,
   color: #5E548E;
   font-size: 0.7rem;
   text-transform: uppercase;
+}
+
+.btn-card-edit-action {
+  position: relative;
+  z-index: 45;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 2rem;
+  width: 2rem;
+  height: 2rem;
+  min-width: 2rem;
+  min-height: 2rem;
+  border-radius: 0.65rem !important;
+  background: rgba(200, 182, 255, 0.32) !important;
+  touch-action: manipulation;
+  cursor: pointer;
+}
+
+.btn-card-edit-action:hover,
+.btn-card-edit-action:focus-visible {
+  background: rgba(159, 134, 192, 0.28) !important;
+  outline: 2px solid rgba(94, 84, 142, 0.18);
+  outline-offset: 2px;
+}
+
+.btn-card-edit-action svg {
+  pointer-events: none;
 }
 
 /* Vite bundle: canvas resize handle (layout polish lives in index.html) */

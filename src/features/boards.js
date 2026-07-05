@@ -1,4 +1,5 @@
 import { escapeHtml } from '../utils/html.js';
+import { parseJsonResponse } from '../services/apiClient.js';
 
 export async function fetchUserBoards({
   fetchWithCredentials,
@@ -11,13 +12,16 @@ export async function fetchUserBoards({
   try {
     const res = await fetchWithCredentials('/api/boards');
     if (res.ok) {
-      setBoards(await res.json());
+      setBoards(await parseJsonResponse(res, 'Could not load boards from the server.') || []);
       renderUserBoardsList();
       populatePushSelection();
       openPendingBoardLink();
+    } else {
+      const data = await parseJsonResponse(res, 'Could not load boards from the server.');
+      showSyncBanner(data?.error || 'Could not load boards from the server.', true);
     }
   } catch (e) {
-    showSyncBanner('Could not load boards from the server. Check your connection and try again.', true);
+    showSyncBanner(e.message || 'Could not load boards from the server. Check your connection and try again.', true);
   }
 }
 
