@@ -18,7 +18,12 @@ namespace DigitalVisionBoard.Models
     );
 
     public record UserPreferencesDto(bool DarkMode, bool NotificationsEnabled, bool HighContrast);
-    public record UserResponse(Guid Id, string Email, string Name, UserPreferencesDto Preferences);
+    public record UserResponse(Guid Id, string Email, string Name, string? Username, string? AvatarUrl, UserPreferencesDto Preferences);
+    public record UpdateProfileRequest(
+        [param: Required, StringLength(80, MinimumLength = 2)] string Name,
+        [param: StringLength(31, MinimumLength = 3), RegularExpression("^@?[A-Za-z0-9_.]+$")] string? Username,
+        [param: StringLength(2048)] string? AvatarUrl
+    );
     public record AuthResponse(UserResponse User, DateTime ExpiresAt)
     {
         [JsonIgnore]

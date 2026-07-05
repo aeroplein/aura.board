@@ -83,8 +83,7 @@ namespace DigitalVisionBoard.Controllers
                 return Unauthorized(new { error = "Unauthorized: Invalid or expired token." });
             }
 
-            var preferencesDto = new UserPreferencesDto(user.DarkMode, user.NotificationsEnabled, user.HighContrast);
-            return Ok(new { user = new UserResponse(user.Id, user.Email, user.Name, preferencesDto) });
+            return Ok(new { user = ToUserResponse(user) });
         }
 
         [HttpGet("verify-email")]
@@ -134,6 +133,44 @@ namespace DigitalVisionBoard.Controllers
             await _context.SaveChangesAsync();
 
             return Ok(new { success = true, preferences = request });
+        }
+
+        [HttpPost("profile")]
+        public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileRequest request)
+        {
+            var user = await GetCurrentUserAsync();
+            if (user == null)
+            {
+                return Unauthorized(new { error = "Unauthorized: Invalid or expired token." });
+            }
+
+            var cleanName = request.Name.Trim();
+            var cleanUsername = string.IsNullOrWhiteSpace(request.Username)
+                ? null
+                : request.Username.Trim().TrimStart('@');
+            var cleanAvatarUrl = string.IsNullOrWhiteSpace(request.AvatarUrl)
+                ? null
+                : request.AvatarUrl.Trim();
+
+            if (cleanUsername is { Length: > 0 } &&
+                !System.Text.RegularExpressions.Regex.IsMatch(cleanUsername, "^[A-Za-z0-9_.]{3,30}$"))
+            {
+                return BadRequest(new { error = "Username can use 3-30 letters, numbers, underscores, or dots." });
+            }
+
+            user.Name = cleanName;
+            user.Username = cleanUsername;
+            user.AvatarUrl = cleanAvatarUrl;
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new { success = true, user = ToUserResponse(user) });
+        }
+
+        private static UserResponse ToUserResponse(User user)
+        {
+            var preferencesDto = new UserPreferencesDto(user.DarkMode, user.NotificationsEnabled, user.HighContrast);
+            return new UserResponse(user.Id, user.Email, user.Name, user.Username, user.AvatarUrl, preferencesDto);
         }
 
         private void SetAuthCookie(AuthResponse response)

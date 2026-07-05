@@ -1386,8 +1386,44 @@
                 <div class="p-3 rounded-2xl bg-white/50 dark:bg-black/10 border border-[#C8B6FF]/25">
                   <span class="font-sans font-bold text-[#5E548E] block">Profile Summary</span>
                   <span id="settings-profile-name" class="text-[11px] text-[#9F86C0] block font-sans mt-1">-</span>
+                  <span id="settings-profile-username" class="text-[10px] text-[#9F86C0] block font-mono">-</span>
                   <span id="settings-profile-email" class="text-[10px] text-[#9F86C0] block font-mono break-all">-</span>
                 </div>
+
+                <!-- Profile customization -->
+                <form id="settings-profile-form" class="p-3 rounded-2xl bg-white/50 dark:bg-black/10 border border-[#C8B6FF]/25 space-y-3 font-sans">
+                  <div class="d-flex align-items-center gap-3">
+                    <div id="settings-avatar-preview" class="h-16 w-16 rounded-full bg-gradient-to-tr from-lilac to-lavender d-flex align-items-center justify-content-center text-[#5E548E] font-extrabold text-lg ring-2 ring-[#C8B6FF]/35 overflow-hidden shrink-0">
+                      --
+                    </div>
+                    <div class="min-w-0">
+                      <span class="font-bold text-[#5E548E] block">Profile Picture</span>
+                      <span class="text-[10px] text-[#9F86C0] block">Upload a small JPG, PNG, WebP, or GIF for your account badge.</span>
+                    </div>
+                  </div>
+
+                  <div class="row g-2">
+                    <div class="col-sm-6">
+                      <label for="settings-profile-display-name" class="form-label font-bold text-[#5E548E]/80 font-mono text-[10px] uppercase mb-1">Display Name</label>
+                      <input type="text" id="settings-profile-display-name" class="form-control rounded-xl border-[#C8B6FF]/35 bg-white/60 text-xs py-2 text-[#5E548E]" maxlength="80" required />
+                    </div>
+                    <div class="col-sm-6">
+                      <label for="settings-profile-username-input" class="form-label font-bold text-[#5E548E]/80 font-mono text-[10px] uppercase mb-1">Username</label>
+                      <input type="text" id="settings-profile-username-input" class="form-control rounded-xl border-[#C8B6FF]/35 bg-white/60 text-xs py-2 text-[#5E548E]" placeholder="@yourname" maxlength="31" />
+                    </div>
+                  </div>
+
+                  <input type="hidden" id="settings-profile-avatar-url" />
+                  <div>
+                    <label for="settings-profile-avatar-file" class="form-label font-bold text-[#5E548E]/80 font-mono text-[10px] uppercase mb-1">Upload Profile Picture</label>
+                    <input type="file" id="settings-profile-avatar-file" class="form-control rounded-xl border-[#C8B6FF]/35 bg-white/60 text-xs py-1.5 text-[#5E548E]" accept="image/*" />
+                  </div>
+
+                  <div class="d-flex justify-content-between align-items-center gap-2">
+                    <button id="settings-profile-clear-avatar" type="button" class="px-3 py-1.5 rounded-xl border border-[#C8B6FF]/40 text-[#5E548E] hover:bg-white text-[11px] font-bold cursor-pointer">Use Initials</button>
+                    <button id="settings-profile-save" type="submit" class="px-3 py-1.5 rounded-xl bg-[#5E548E] hover:bg-[#9F86C0] text-white text-[11px] font-bold cursor-pointer">Save Profile</button>
+                  </div>
+                </form>
                 
                 <!-- Notifications -->
                 <div class="d-flex justify-content-between align-items-center p-3 rounded-2xl bg-white/50 dark:bg-black/10 border border-[#C8B6FF]/25">

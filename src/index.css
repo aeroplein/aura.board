@@ -458,6 +458,57 @@ body,
     border-radius: 1rem !important;
   }
 
+  .draggable-card {
+    padding: 0.5rem !important;
+    border-radius: 0.85rem !important;
+    box-shadow: 0 16px 32px -26px rgba(94, 84, 142, 0.44) !important;
+  }
+
+  .draggable-card > .h-100 {
+    gap: 0.15rem;
+  }
+
+  .draggable-card [class*="border-b"] {
+    padding-bottom: 0.25rem !important;
+  }
+
+  .draggable-card [class*="text-[9px]"] {
+    font-size: 0.48rem !important;
+    padding: 0.12rem 0.35rem !important;
+  }
+
+  .draggable-card h5 {
+    font-size: 0.55rem !important;
+    line-height: 1.05;
+    padding-top: 0.2rem !important;
+  }
+
+  .draggable-card .stage-card-body {
+    margin-top: 0.25rem !important;
+  }
+
+  .draggable-card .stage-card-body p,
+  .draggable-card .stage-card-body li {
+    font-size: 0.56rem !important;
+    line-height: 1.25;
+  }
+
+  .draggable-card .stage-card-body > div {
+    min-height: 50px !important;
+  }
+
+  .draggable-card .stage-card-body img {
+    min-height: 0;
+  }
+
+  .btn-card-edit-action {
+    flex-basis: 1.45rem;
+    width: 1.45rem;
+    height: 1.45rem;
+    min-width: 1.45rem;
+    min-height: 1.45rem;
+  }
+
   #no-elements-banner {
     padding: 1rem !important;
   }
@@ -503,5 +554,17 @@ body,
 
   #canvas-area-wrapper {
     min-height: 19rem !important;
+  }
+
+  .draggable-card {
+    padding: 0.45rem !important;
+  }
+
+  .btn-card-edit-action {
+    flex-basis: 1.35rem;
+    width: 1.35rem;
+    height: 1.35rem;
+    min-width: 1.35rem;
+    min-height: 1.35rem;
   }
 }

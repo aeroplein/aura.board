@@ -434,6 +434,15 @@ const CARD_WIDTH_UNIT = 8;
 const CARD_HEIGHT_UNIT = 7;
 const CANVAS_EDGE_GAP = 10;
 
+function getResponsiveCardUnits(canvasWidth) {
+  const scale = Math.max(0.5, Math.min(canvasWidth / 760, 1.24));
+
+  return {
+    width: CARD_WIDTH_UNIT * scale,
+    height: CARD_HEIGHT_UNIT * scale
+  };
+}
+
 function getCanvasPixelBounds() {
   const container = document.getElementById('canvas-area-wrapper');
   return {
@@ -443,10 +452,16 @@ function getCanvasPixelBounds() {
 }
 
 function getRenderedCardSize(item, canvasWidth, canvasHeight) {
-  const baseWidth = item.width ? item.width * CARD_WIDTH_UNIT : 200;
-  const baseHeight = item.height ? item.height * CARD_HEIGHT_UNIT : 140;
-  const maxWidth = Math.max(120, canvasWidth - (CANVAS_EDGE_GAP * 2));
-  const maxHeight = Math.max(90, canvasHeight - (CANVAS_EDGE_GAP * 2));
+  const cardUnits = getResponsiveCardUnits(canvasWidth);
+  const baseWidth = item.width ? item.width * cardUnits.width : 200 * (cardUnits.width / CARD_WIDTH_UNIT);
+  const baseHeight = item.height ? item.height * cardUnits.height : 140 * (cardUnits.height / CARD_HEIGHT_UNIT);
+  const isMobileCanvas = canvasWidth <= 767;
+  const maxWidth = isMobileCanvas
+    ? Math.max(92, Math.min(canvasWidth * (canvasWidth <= 480 ? 0.48 : 0.56), canvasWidth - (CANVAS_EDGE_GAP * 2)))
+    : Math.max(120, canvasWidth - (CANVAS_EDGE_GAP * 2));
+  const maxHeight = isMobileCanvas
+    ? Math.max(68, Math.min(canvasHeight * 0.38, canvasHeight - (CANVAS_EDGE_GAP * 2)))
+    : Math.max(90, canvasHeight - (CANVAS_EDGE_GAP * 2));
 
   return {
     width: Math.min(baseWidth, maxWidth),
@@ -1055,6 +1070,8 @@ function attachCardResizeEvents(el) {
   let resizeStartY = 0;
   let cardStartWidth = 0;
   let cardStartHeight = 0;
+  let cardStartLeft = 0;
+  let cardStartTop = 0;
   let itemId = el.getAttribute('data-id');
 
   handle.addEventListener('mousedown', resizeStart);
@@ -1078,6 +1095,9 @@ function attachCardResizeEvents(el) {
 
     cardStartWidth = el.offsetWidth;
     cardStartHeight = el.offsetHeight;
+    cardStartLeft = el.offsetLeft;
+    cardStartTop = el.offsetTop;
+    el.classList.add('is-resizing');
 
     // Show visual size indicator text during active resizing
     const sizeIndicator = el.querySelector('.card-size-indicator');
@@ -1104,23 +1124,23 @@ function attachCardResizeEvents(el) {
     let newWidth = cardStartWidth + dx;
     let newHeight = cardStartHeight + dy;
 
-    // Get card position relative to canvas wrapper
-    const parentRect = container.getBoundingClientRect();
-    const cardRect = el.getBoundingClientRect();
-    const leftPx = cardRect.left - parentRect.left;
-    const topPx = cardRect.top - parentRect.top;
+    // Use layout offsets instead of transformed bounds so tilt/scale does not make the card drift while resizing.
+    const leftPx = cardStartLeft;
+    const topPx = cardStartTop;
 
-    // Boundary constraints: Card cannot exceed canvas boundaries
-    let maxWidth = activeCanvasOffsetWidth - leftPx;
-    let maxHeight = activeCanvasOffsetHeight - topPx;
+    // Boundary constraints: Card cannot exceed canvas boundaries while keeping its anchored position.
+    let maxWidth = activeCanvasOffsetWidth - leftPx - CANVAS_EDGE_GAP;
+    let maxHeight = activeCanvasOffsetHeight - topPx - CANVAS_EDGE_GAP;
 
     // Max limits: absolute canvas sizes
     maxWidth = Math.min(maxWidth, activeCanvasOffsetWidth);
     maxHeight = Math.min(maxHeight, activeCanvasOffsetHeight);
 
     // Min limits (card shouldn't shrink too small)
-    const absoluteMinWidth = Math.min(120, maxWidth);
-    const absoluteMinHeight = Math.min(80, maxHeight);
+    const cardUnits = getResponsiveCardUnits(activeCanvasOffsetWidth);
+    const scale = cardUnits.width / CARD_WIDTH_UNIT;
+    const absoluteMinWidth = Math.min(Math.max(84, 120 * scale), maxWidth);
+    const absoluteMinHeight = Math.min(Math.max(58, 80 * scale), maxHeight);
 
     newWidth = Math.max(absoluteMinWidth, Math.min(newWidth, maxWidth));
     newHeight = Math.max(absoluteMinHeight, Math.min(newHeight, maxHeight));
@@ -1140,10 +1160,12 @@ function attachCardResizeEvents(el) {
   function resizeEnd() {
     if (isResizing) {
       isResizing = false;
+      el.classList.remove('is-resizing');
 
-      // Convert pixels to database coordinates (Width / 8, Height / 7)
-      const dbWidth = Math.round(el.offsetWidth / CARD_WIDTH_UNIT);
-      const dbHeight = Math.round(el.offsetHeight / CARD_HEIGHT_UNIT);
+      // Convert pixels to database coordinates using the current responsive render scale.
+      const cardUnits = getResponsiveCardUnits(activeCanvasOffsetWidth);
+      const dbWidth = Math.round(el.offsetWidth / cardUnits.width);
+      const dbHeight = Math.round(el.offsetHeight / cardUnits.height);
 
       updateBoardItemSize(itemId, dbWidth, dbHeight);
 
@@ -1159,6 +1181,7 @@ function attachCardResizeEvents(el) {
     document.removeEventListener('mouseup', resizeEnd);
     document.removeEventListener('touchmove', resizeMove);
     document.removeEventListener('touchend', resizeEnd);
+    el.classList.remove('is-resizing');
   }
 }
 

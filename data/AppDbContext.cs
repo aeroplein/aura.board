@@ -41,6 +41,12 @@ namespace DigitalVisionBoard.Data
                 entity.Property(u => u.Name)
                     .HasMaxLength(80);
 
+                entity.Property(u => u.Username)
+                    .HasMaxLength(30);
+
+                entity.Property(u => u.AvatarUrl)
+                    .HasMaxLength(2048);
+
                 entity.Property(u => u.PasswordHash)
                     .HasMaxLength(256);
 
