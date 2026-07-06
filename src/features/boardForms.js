@@ -1,8 +1,31 @@
 import { parseJsonResponse } from '../services/apiClient.js';
 import { showConfirmDialog } from '../ui/confirmDialog.js';
 
+const BOARD_TITLE_MAX = 120;
+const BOARD_DESCRIPTION_MAX = 500;
+const BOARD_CATEGORY_MAX = 80;
+const BOARD_COLLABORATORS_MAX = 25;
+
 function isLikelyEmail(value) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(value || '').trim());
+}
+
+function getSaveErrorMessage(responseBody) {
+  if (responseBody?.error) {
+    return responseBody.error;
+  }
+
+  const validationErrors = responseBody?.errors;
+  if (validationErrors && typeof validationErrors === 'object') {
+    const firstMessages = Object.values(validationErrors)
+      .flat()
+      .filter(Boolean);
+    if (firstMessages.length > 0) {
+      return firstMessages[0];
+    }
+  }
+
+  return 'Could not save this board. Please check the required fields and try again.';
 }
 
 export function setupBoardForm({
@@ -31,9 +54,9 @@ export function setupBoardForm({
     const submitBtn = form.querySelector('button[type="submit"]');
     const originalSubmitText = submitBtn?.textContent || '';
     const bid = document.getElementById('board-field-id').value;
-    const title = document.getElementById('board-field-title').value;
-    const description = document.getElementById('board-field-desc').value;
-    const category = document.getElementById('board-field-category').value;
+    const title = document.getElementById('board-field-title').value.trim();
+    const description = document.getElementById('board-field-desc').value.trim();
+    const category = document.getElementById('board-field-category').value.trim();
     const isShared = sharedBox.checked;
     const collaborators = document.getElementById('board-field-collabs').value
       .split(',')
@@ -43,6 +66,31 @@ export function setupBoardForm({
 
     if (isShared && invalidCollaborators.length > 0) {
       showSyncBanner(`Please fix collaborator email: ${invalidCollaborators[0]}`, true);
+      return;
+    }
+
+    if (!title) {
+      showSyncBanner('Please add a canvas title before saving.', true);
+      return;
+    }
+
+    if (title.length > BOARD_TITLE_MAX) {
+      showSyncBanner(`Canvas title must be ${BOARD_TITLE_MAX} characters or fewer.`, true);
+      return;
+    }
+
+    if (description.length > BOARD_DESCRIPTION_MAX) {
+      showSyncBanner(`Theme description must be ${BOARD_DESCRIPTION_MAX} characters or fewer.`, true);
+      return;
+    }
+
+    if (category.length > BOARD_CATEGORY_MAX) {
+      showSyncBanner(`Aesthetic category must be ${BOARD_CATEGORY_MAX} characters or fewer.`, true);
+      return;
+    }
+
+    if (collaborators.length > BOARD_COLLABORATORS_MAX) {
+      showSyncBanner(`Share with at most ${BOARD_COLLABORATORS_MAX} collaborators at a time.`, true);
       return;
     }
 
@@ -89,7 +137,7 @@ export function setupBoardForm({
         fetchUserBoards();
         showSyncBanner(inviteMessage || 'Workspace changes pushed successfully.', false);
       } else {
-        showSyncBanner(resultBoard?.error || 'Could not save this board. Please check the required fields and try again.', true);
+        showSyncBanner(getSaveErrorMessage(resultBoard), true);
       }
     } catch (e) {
       showSyncBanner(e.message || 'Could not reach the server to save this board. Try again when you are online.', true);
