@@ -91,6 +91,9 @@ namespace DigitalVisionBoard.Data
                 entity.Property(bi => bi.Title)
                     .HasMaxLength(120);
 
+                entity.Property(bi => bi.Content)
+                    .HasMaxLength(4096);
+
                 entity.Property(bi => bi.Caption)
                     .HasMaxLength(500);
 
@@ -121,6 +124,8 @@ namespace DigitalVisionBoard.Data
             {
                 entity.Property(img => img.MimeType)
                     .HasMaxLength(80);
+
+                entity.HasIndex(img => img.UploaderUserId);
             });
 
             // Configure User Email unique constraint & index

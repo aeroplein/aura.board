@@ -54,13 +54,24 @@ namespace DigitalVisionBoard.Controllers
                 .Select(al => new {
                     al.Id,
                     al.BoardId,
-                    al.UserEmail,
+                    ActorLabel = BuildActorLabel(al.UserEmail),
                     al.ActionDescription,
                     al.Timestamp
                 })
                 .ToListAsync();
 
             return Ok(activityLogs);
+        }
+
+        private static string BuildActorLabel(string storedActor)
+        {
+            if (Guid.TryParse(storedActor, out var userId))
+            {
+                return $"user-{userId.ToString("N")[..8]}";
+            }
+
+            var localPart = storedActor.Split('@')[0];
+            return string.IsNullOrWhiteSpace(localPart) ? "collaborator" : localPart;
         }
     }
 }

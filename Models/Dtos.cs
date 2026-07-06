@@ -23,7 +23,7 @@ namespace DigitalVisionBoard.Models
     public record UpdateProfileRequest(
         [param: Required, StringLength(80, MinimumLength = 2)] string Name,
         [param: StringLength(31, MinimumLength = 3), RegularExpression("^@?[A-Za-z0-9_.]+$")] string? Username,
-        [param: StringLength(2048)] string? AvatarUrl
+        [param: StringLength(2048), OptionalAvatarUrl] string? AvatarUrl
     );
     public record AuthResponse(UserResponse User, DateTime ExpiresAt)
     {
@@ -42,6 +42,7 @@ namespace DigitalVisionBoard.Models
         [param: Required, StringLength(120)] string Id,
         [param: Required, RegularExpression("^(quote|note|image|text)$")] string Type,
         [param: Required, StringLength(120)] string Title,
+        [param: StringLength(4096)]
         string? Content,
         [param: StringLength(500)]
         string? Caption,
@@ -121,14 +122,17 @@ namespace DigitalVisionBoard.Models
 
     // --- SYNC ENGINE DTOS ---
     public record SyncActionDto(
+        [param: Required, RegularExpression("^(create|update|delete|upsert_item|delete_item)$")]
         string Action, // 'create', 'update', 'delete', 'upsert_item', 'delete_item'
         Guid BoardId,
+        [param: StringLength(120)]
         string? ItemId,
         System.Text.Json.JsonElement? Payload, // Can be BoardResponse or BoardItemResponse
         DateTime Timestamp
     );
 
     public record SyncRequest(
+        [param: Required, MaxLength(500)]
         List<SyncActionDto> Queue,
         DateTime ClientTimestamp
     );
@@ -168,7 +172,7 @@ namespace DigitalVisionBoard.Models
     );
 
     public record UploadRequest(
-        [param: Required, MinLength(1)] string Base64Data,
+        [param: Required, MinLength(1), MaxLength(21_000_000)] string Base64Data,
         [param: RegularExpression("^image/(jpeg|png|webp|gif)$")] string? MimeType,
         [param: StringLength(160)] string? FileName
     );
@@ -207,6 +211,45 @@ namespace DigitalVisionBoard.Models
         public override bool IsValid(object? value)
         {
             return value is string email && StrictEmailValidator.IsValid(email);
+        }
+    }
+
+    public sealed class OptionalAvatarUrlAttribute : ValidationAttribute
+    {
+        public OptionalAvatarUrlAttribute()
+            : base("Avatar URL must be HTTPS, HTTP for local development, or an uploaded /api/images/{id} path.")
+        {
+        }
+
+        public override bool IsValid(object? value)
+        {
+            if (value is null)
+            {
+                return true;
+            }
+
+            if (value is not string raw || string.IsNullOrWhiteSpace(raw))
+            {
+                return true;
+            }
+
+            var avatarUrl = raw.Trim();
+            if (avatarUrl.StartsWith("/api/images/", StringComparison.OrdinalIgnoreCase))
+            {
+                var idPart = avatarUrl["/api/images/".Length..];
+                return Guid.TryParse(idPart, out _);
+            }
+
+            return Uri.TryCreate(avatarUrl, UriKind.Absolute, out var uri) &&
+                (uri.Scheme == Uri.UriSchemeHttps ||
+                    (uri.Scheme == Uri.UriSchemeHttp && IsLocalHost(uri.Host)));
+        }
+
+        private static bool IsLocalHost(string host)
+        {
+            return string.Equals(host, "localhost", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(host, "127.0.0.1", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(host, "::1", StringComparison.OrdinalIgnoreCase);
         }
     }
 

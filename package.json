@@ -10,7 +10,10 @@
     "build": "vite build",
     "clean": "node scripts/clean-build.mjs",
     "lint": "node scripts/lint.mjs",
-    "test:professionalization": "dotnet run --project tests/ProfessionalizationChecks/ProfessionalizationChecks.csproj"
+    "test:professionalization": "dotnet run --project tests/ProfessionalizationChecks/ProfessionalizationChecks.csproj",
+    "audit:backend": "dotnet list package --vulnerable --include-transitive",
+    "audit:frontend": "npm audit --audit-level=moderate",
+    "audit": "npm run audit:backend && npm run audit:frontend"
   },
   "dependencies": {
     "@google/genai": "^1.29.0",

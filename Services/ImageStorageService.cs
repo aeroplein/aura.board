@@ -21,7 +21,7 @@ namespace DigitalVisionBoard.Services
             _context = context;
         }
 
-        public async Task<ImageFile> SaveBase64ImageAsync(UploadRequest request)
+        public async Task<ImageFile> SaveBase64ImageAsync(UploadRequest request, Guid uploaderUserId)
         {
             var pureBase64 = request.Base64Data;
             var mimeType = request.MimeType ?? "image/png";
@@ -66,6 +66,7 @@ namespace DigitalVisionBoard.Services
             var imageFile = new ImageFile
             {
                 Id = Guid.NewGuid(),
+                UploaderUserId = uploaderUserId,
                 Base64Data = pureBase64,
                 MimeType = mimeType,
                 CreatedAt = DateTime.UtcNow

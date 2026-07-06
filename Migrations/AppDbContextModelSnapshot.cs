@@ -125,7 +125,8 @@ namespace DigitalVisionBoard.Migrations
                         .HasColumnType("character varying(200)");
 
                     b.Property<string>("Content")
-                        .HasColumnType("text");
+                        .HasMaxLength(4096)
+                        .HasColumnType("character varying(4096)");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -193,7 +194,12 @@ namespace DigitalVisionBoard.Migrations
                         .HasMaxLength(80)
                         .HasColumnType("character varying(80)");
 
+                    b.Property<Guid?>("UploaderUserId")
+                        .HasColumnType("uuid");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("UploaderUserId");
 
                     b.ToTable("ImageFiles");
                 });
@@ -204,12 +210,12 @@ namespace DigitalVisionBoard.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<bool>("DarkMode")
-                        .HasColumnType("boolean");
-
                     b.Property<string>("AvatarUrl")
                         .HasMaxLength(2048)
                         .HasColumnType("character varying(2048)");
+
+                    b.Property<bool>("DarkMode")
+                        .HasColumnType("boolean");
 
                     b.Property<string>("Email")
                         .IsRequired()

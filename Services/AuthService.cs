@@ -304,7 +304,7 @@ namespace DigitalVisionBoard.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Email verification message failed for {Email}", user.Email);
+                _logger.LogError(ex, "Email verification message failed for user {UserId}", user.Id);
             }
         }
 

@@ -257,7 +257,6 @@ Include exactly 3 to 4 suggested items mapping quote, note, and image prompts. E
                     using var content = new StringContent(json, Encoding.UTF8, "application/json");
                     var url = $"https://generativelanguage.googleapis.com/v1beta/models/{modelToTry}:generateContent?key={apiKey}";
                     var response = await _httpClient.PostAsync(url, content);
-                    var responseBody = await response.Content.ReadAsStringAsync();
 
                     if (response.IsSuccessStatusCode)
                     {
@@ -266,10 +265,10 @@ Include exactly 3 to 4 suggested items mapping quote, note, and image prompts. E
                             _logger.LogInformation("Gemini request succeeded with fallback model {Model}", modelToTry);
                         }
 
-                        return responseBody;
+                        return await response.Content.ReadAsStringAsync();
                     }
 
-                    lastException = new Exception($"Gemini HTTP Error: {response.StatusCode} using {modelToTry} - {responseBody}");
+                    lastException = new Exception($"Gemini HTTP Error: {response.StatusCode} using {modelToTry}");
                     if (!IsTransientGeminiStatus(response.StatusCode))
                     {
                         throw lastException;

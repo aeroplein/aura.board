@@ -3,6 +3,8 @@ using DigitalVisionBoard.Data;
 using DigitalVisionBoard.Models;
 using DigitalVisionBoard.Services;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 
 var checks = new List<(string Name, Action Check)>
 {
@@ -11,6 +13,7 @@ var checks = new List<(string Name, Action Check)>
     ("BoardService normalizes collaborators and item types", CheckBoardServiceNormalization),
     ("ImageStorageService rejects invalid upload payloads before database writes", CheckImageUploadValidation),
     ("Strict email validation rejects malformed domains", CheckStrictEmailValidation),
+    ("Advanced email validation keeps MX checks configurable and blocks disposable domains", CheckAdvancedEmailValidationPolicy),
     ("Profile identity normalizes usernames and carries avatar fields", CheckProfileIdentityContracts),
     ("SyncResponse exposes diagnostics without breaking board payloads", CheckSyncResponseDiagnostics)
 };
@@ -120,12 +123,13 @@ static void CheckImageUploadValidation()
         .Options;
     using var context = new AppDbContext(options);
     var service = new ImageStorageService(context);
+    var uploaderUserId = Guid.NewGuid();
 
-    AssertThrows<InvalidDataException>(() => service.SaveBase64ImageAsync(new UploadRequest("not-base64", "image/png", "bad.png")).GetAwaiter().GetResult(), "Invalid base64 should be rejected.");
-    AssertThrows<InvalidDataException>(() => service.SaveBase64ImageAsync(new UploadRequest(Convert.ToBase64String(new byte[] { 1, 2, 3 }), "image/svg+xml", "bad.svg")).GetAwaiter().GetResult(), "Unsupported MIME should be rejected.");
+    AssertThrows<InvalidDataException>(() => service.SaveBase64ImageAsync(new UploadRequest("not-base64", "image/png", "bad.png"), uploaderUserId).GetAwaiter().GetResult(), "Invalid base64 should be rejected.");
+    AssertThrows<InvalidDataException>(() => service.SaveBase64ImageAsync(new UploadRequest(Convert.ToBase64String(new byte[] { 1, 2, 3 }), "image/svg+xml", "bad.svg"), uploaderUserId).GetAwaiter().GetResult(), "Unsupported MIME should be rejected.");
 
     var oversized = Convert.ToBase64String(new byte[(15 * 1024 * 1024) + 1]);
-    AssertThrows<InvalidDataException>(() => service.SaveBase64ImageAsync(new UploadRequest(oversized, "image/png", "too-large.png")).GetAwaiter().GetResult(), "Oversized image should be rejected.");
+    AssertThrows<InvalidDataException>(() => service.SaveBase64ImageAsync(new UploadRequest(oversized, "image/png", "too-large.png"), uploaderUserId).GetAwaiter().GetResult(), "Oversized image should be rejected.");
 }
 
 static void CheckStrictEmailValidation()
@@ -138,9 +142,43 @@ static void CheckStrictEmailValidation()
     Assert(!validator.IsValid("person@example.c1"), "Non-letter TLD should fail.");
 }
 
+static void CheckAdvancedEmailValidationPolicy()
+{
+    var localValidator = NewAdvancedEmailValidator(new AdvancedEmailValidationSettings
+    {
+        Enabled = true,
+        RequireMxRecord = false,
+        BlockDisposableDomains = false
+    });
+
+    var plausibleOnly = localValidator.ValidateAsync("person@nonexistent-course-demo.example").GetAwaiter().GetResult();
+    Assert(plausibleOnly.IsValid, "MX-disabled local validation should accept a structurally plausible test domain.");
+
+    var disposableValidator = NewAdvancedEmailValidator(new AdvancedEmailValidationSettings
+    {
+        Enabled = true,
+        RequireMxRecord = false,
+        BlockDisposableDomains = true
+    });
+
+    var disposable = disposableValidator.ValidateAsync("person@mailinator.com").GetAwaiter().GetResult();
+    Assert(!disposable.IsValid, "Known disposable domains should be blocked.");
+
+    var blockedDomainValidator = NewAdvancedEmailValidator(new AdvancedEmailValidationSettings
+    {
+        Enabled = true,
+        RequireMxRecord = false,
+        BlockDisposableDomains = false,
+        BlockedDomains = new List<string> { "gmai.com" }
+    });
+
+    var typoDomain = blockedDomainValidator.ValidateAsync("person@gmai.com").GetAwaiter().GetResult();
+    Assert(!typoDomain.IsValid, "Configured typo domains should be blocked.");
+}
+
 static void CheckProfileIdentityContracts()
 {
-    Assert(AuthService.NormalizeUsername(" @Pelin.Creates ") == "pelin.creates", "Username should trim @ and normalize case.");
+    Assert(AuthService.NormalizeUsername(" @Dream.Creator ") == "dream.creator", "Username should trim @ and normalize case.");
 
     var response = new UserResponse(
         Guid.NewGuid(),
@@ -178,6 +216,14 @@ static void CheckSyncResponseDiagnostics()
     Assert(skippedActions[0].Reason.Contains("stale", StringComparison.OrdinalIgnoreCase), "Skipped action reason should be exposed.");
 }
 
+static AdvancedEmailValidator NewAdvancedEmailValidator(AdvancedEmailValidationSettings settings)
+{
+    return new AdvancedEmailValidator(
+        Options.Create(settings),
+        new StaticHttpClientFactory(),
+        NullLogger<AdvancedEmailValidator>.Instance);
+}
+
 static User NewUser(string email)
 {
     return new User
@@ -210,4 +256,12 @@ static void AssertThrows<TException>(Action action, string message)
     }
 
     throw new InvalidOperationException(message);
+}
+
+sealed class StaticHttpClientFactory : IHttpClientFactory
+{
+    public HttpClient CreateClient(string name)
+    {
+        return new HttpClient();
+    }
 }

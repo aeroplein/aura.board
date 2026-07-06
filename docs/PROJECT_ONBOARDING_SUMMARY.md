@@ -25,12 +25,12 @@ The active backend is ASP.NET Core with PostgreSQL and Entity Framework Core. Ol
 
 ## 3. Database Schema (EF Core Models)
 
-*   [User.cs](file:///c:/Users/pelin/antigravity/Digital-Vision-Board/Models/User.cs): Stores user identity, password hashes, PBKDF2 salts, and workspace layout preferences.
-*   [Board.cs](file:///c:/Users/pelin/antigravity/Digital-Vision-Board/Models/Board.cs): Represents a visual canvas linked to an owner.
-*   [BoardItem.cs](file:///c:/Users/pelin/antigravity/Digital-Vision-Board/Models/BoardItem.cs): Represents individual board elements such as `note`, `quote`, `image`, and `text`, including content, layout, captions, and color metadata.
-*   [BoardCollaborator.cs](file:///c:/Users/pelin/antigravity/Digital-Vision-Board/Models/BoardCollaborator.cs): Composite primary key table mapping shared boards to normalized collaborator email strings.
-*   [ImageFile.cs](file:///c:/Users/pelin/antigravity/Digital-Vision-Board/Models/ImageFile.cs): Stores base64-encoded image payloads and MIME types.
-*   [ActivityLog.cs](file:///c:/Users/pelin/antigravity/Digital-Vision-Board/Models/ActivityLog.cs): Activity-feed records linked to boards and users.
+*   [User.cs](../Models/User.cs): Stores user identity, password hashes, PBKDF2 salts, and workspace layout preferences.
+*   [Board.cs](../Models/Board.cs): Represents a visual canvas linked to an owner.
+*   [BoardItem.cs](../Models/BoardItem.cs): Represents individual board elements such as `note`, `quote`, `image`, and `text`, including content, layout, captions, and color metadata.
+*   [BoardCollaborator.cs](../Models/BoardCollaborator.cs): Composite primary key table mapping shared boards to normalized collaborator email strings.
+*   [ImageFile.cs](../Models/ImageFile.cs): Stores base64-encoded image payloads and MIME types.
+*   [ActivityLog.cs](../Models/ActivityLog.cs): Activity-feed records linked to boards and users.
 
 ---
 
@@ -57,5 +57,5 @@ The active backend is ASP.NET Core with PostgreSQL and Entity Framework Core. Ol
 
 ## 6. How We Learn
 
-*   **Study Guide:** Detailed notes are maintained chronologically in [docs/LEARNING_JOURNAL.md](file:///c:/Users/pelin/antigravity/Digital-Vision-Board/docs/LEARNING_JOURNAL.md).
+*   **Study Guide:** Detailed notes are maintained chronologically in [docs/LEARNING_JOURNAL.md](LEARNING_JOURNAL.md).
 *   **Instruction Rules:** Keep explanations concrete and tied to actual files, controllers, services, models, migrations, and README claims.

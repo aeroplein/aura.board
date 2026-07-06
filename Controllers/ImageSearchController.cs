@@ -48,8 +48,7 @@ namespace DigitalVisionBoard.Controllers
                 using var response = await _httpClient.SendAsync(request);
                 if (!response.IsSuccessStatusCode)
                 {
-                    var errorBody = await response.Content.ReadAsStringAsync();
-                    _logger.LogWarning("Unsplash image search failed with {StatusCode}: {Body}", response.StatusCode, errorBody);
+                    _logger.LogWarning("Unsplash image search failed with status {StatusCode}.", response.StatusCode);
                     return Redirect(GetFallbackImageUrl(cleanedQuery, sig));
                 }
 
@@ -68,7 +67,7 @@ namespace DigitalVisionBoard.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Unsplash image search failed for query {Query}", cleanedQuery);
+                _logger.LogWarning(ex, "Unsplash image search failed.");
             }
 
             var finalFallbackUrl = GetFallbackImageUrl(cleanedQuery, sig);

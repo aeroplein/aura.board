@@ -38,7 +38,7 @@ namespace DigitalVisionBoard.Controllers
             }
             catch (InvalidOperationException ex)
             {
-                _logger.LogInformation(ex, "Registration rejected for {Email}", request.Email);
+                _logger.LogInformation(ex, "Registration rejected.");
                 if (ex is AdvancedEmailValidationException)
                 {
                     return BadRequest(new { error = ex.Message });
@@ -48,7 +48,7 @@ namespace DigitalVisionBoard.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Registration failed for {Email}", request.Email);
+                _logger.LogError(ex, "Registration failed.");
                 return StatusCode(StatusCodes.Status503ServiceUnavailable, new { error = "Accounts are temporarily unavailable. Check the database configuration and try again." });
             }
         }
@@ -70,7 +70,7 @@ namespace DigitalVisionBoard.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Login failed for {Email}", request.Email);
+                _logger.LogError(ex, "Login failed.");
                 return StatusCode(StatusCodes.Status503ServiceUnavailable, new { error = "Accounts are temporarily unavailable. Check the database configuration and try again." });
             }
         }
@@ -106,7 +106,7 @@ namespace DigitalVisionBoard.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Email verification failed for {Email}", email);
+                _logger.LogError(ex, "Email verification failed.");
                 return StatusCode(StatusCodes.Status503ServiceUnavailable, new { error = "Email verification is temporarily unavailable." });
             }
         }

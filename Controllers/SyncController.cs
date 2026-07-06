@@ -55,7 +55,7 @@ namespace DigitalVisionBoard.Controllers
                         activityLogsToSave.Add(new ActivityLog
                         {
                             BoardId = actionItem.BoardId,
-                            UserEmail = user.Email,
+                            UserEmail = BuildActivityActor(user),
                             ActionDescription = $"Skipped sync action: {reason}",
                             Timestamp = actionItem.Timestamp == default ? DateTime.UtcNow : actionItem.Timestamp
                         });
@@ -153,8 +153,8 @@ namespace DigitalVisionBoard.Controllers
                             activityLogsToSave.Add(new ActivityLog
                             {
                                 BoardId = newBoard.Id,
-                                UserEmail = user.Email,
-                                ActionDescription = $"Created board '{newBoard.Title}'",
+                                UserEmail = BuildActivityActor(user),
+                                ActionDescription = "Created a board.",
                                 Timestamp = actionItem.Timestamp
                             });
 
@@ -227,8 +227,8 @@ namespace DigitalVisionBoard.Controllers
                             activityLogsToSave.Add(new ActivityLog
                             {
                                 BoardId = board.Id,
-                                UserEmail = user.Email,
-                                ActionDescription = $"Updated board parameters for '{board.Title}'",
+                                UserEmail = BuildActivityActor(user),
+                                ActionDescription = "Updated board settings.",
                                 Timestamp = actionItem.Timestamp
                             });
 
@@ -313,7 +313,7 @@ namespace DigitalVisionBoard.Controllers
                                 existingItem.UpdatedAt = actionItem.Timestamp;
                                 existingItem.IsEncrypted = itemDto.IsEncrypted;
 
-                                desc = $"Updated card '{itemDto.Title}' ({itemDto.Type})";
+                                desc = $"Updated a {itemDto.Type} card.";
                             }
                             else
                             {
@@ -337,7 +337,7 @@ namespace DigitalVisionBoard.Controllers
                                 };
                                 board.Items.Add(newItem);
 
-                                desc = $"Added card '{itemDto.Title}' ({itemDto.Type})";
+                                desc = $"Added a {itemDto.Type} card.";
                             }
 
                             board.UpdatedAt = actionItem.Timestamp;
@@ -346,7 +346,7 @@ namespace DigitalVisionBoard.Controllers
                             activityLogsToSave.Add(new ActivityLog
                             {
                                 BoardId = board.Id,
-                                UserEmail = user.Email,
+                                UserEmail = BuildActivityActor(user),
                                 ActionDescription = desc,
                                 Timestamp = actionItem.Timestamp
                             });
@@ -391,8 +391,8 @@ namespace DigitalVisionBoard.Controllers
                         activityLogsToSave.Add(new ActivityLog
                         {
                             BoardId = board.Id,
-                            UserEmail = user.Email,
-                            ActionDescription = $"Deleted card '{existingItem.Title}'",
+                            UserEmail = BuildActivityActor(user),
+                            ActionDescription = "Deleted a card.",
                             Timestamp = actionItem.Timestamp
                         });
 
@@ -445,6 +445,11 @@ namespace DigitalVisionBoard.Controllers
         private static bool IsSupportedSyncAction(string? action)
         {
             return action is "create" or "update" or "delete" or "upsert_item" or "delete_item";
+        }
+
+        private static string BuildActivityActor(User user)
+        {
+            return user.Id.ToString();
         }
 
         private static bool IsValidCreateBoardRequest(CreateBoardRequest request)
