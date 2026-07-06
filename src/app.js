@@ -2589,6 +2589,56 @@ function setupExportPdfHandlers() {
   }
 }
 
+function waitForCanvasImages(root) {
+  const images = Array.from(root.querySelectorAll('img'));
+  return Promise.all(images.map(img => {
+    if (img.complete) {
+      return Promise.resolve();
+    }
+
+    return new Promise(resolve => {
+      const finish = () => resolve();
+      img.addEventListener('load', finish, { once: true });
+      img.addEventListener('error', finish, { once: true });
+      setTimeout(finish, 2500);
+    });
+  }));
+}
+
+function isUnsafeExportImageSource(src) {
+  if (!src || src.startsWith('data:') || src.startsWith('blob:')) {
+    return false;
+  }
+
+  try {
+    const url = new URL(src, window.location.href);
+    return url.protocol.startsWith('http') && url.origin !== window.location.origin;
+  } catch {
+    return true;
+  }
+}
+
+function prepareVisualExportClone(clonedDocument) {
+  const clonedCanvas = clonedDocument.getElementById('canvas-area-wrapper');
+  if (!clonedCanvas) return;
+
+  clonedCanvas.querySelectorAll('img').forEach(img => {
+    const source = img.currentSrc || img.src || img.getAttribute('src') || '';
+    if (!isUnsafeExportImageSource(source)) return;
+
+    const fallback = clonedDocument.createElement('div');
+    fallback.className = 'image-fallback d-flex flex-column align-items-center justify-content-center text-center w-full h-full p-3 bg-[#F8F7FF] text-[#5E548E]';
+    fallback.style.minHeight = img.style.minHeight || '80px';
+    fallback.style.width = '100%';
+    fallback.style.height = '100%';
+    fallback.innerHTML = `
+      <span style="font-size: 10px; font-weight: 800;">${escapeHtml(img.dataset.fallbackTitle || img.alt || 'Visual Concept')}</span>
+      <span style="font-size: 9px; color: #9F86C0; margin-top: 4px;">${escapeHtml(img.dataset.fallbackCaption || 'Image preview unavailable in visual export')}</span>
+    `;
+    img.replaceWith(fallback);
+  });
+}
+
 async function generateVisualBoardPdf() {
   const b = boards.find(o => o.id === currentBoardId);
   if (!b) {
@@ -2615,14 +2665,24 @@ async function generateVisualBoardPdf() {
     return;
   }
 
+  if (typeof window.html2canvas !== 'function') {
+    canvasWrapper.classList.remove('printing-in-progress');
+    showSyncBanner('Visual PDF renderer did not load. Try the dossier PDF option or refresh the page.', true);
+    return;
+  }
+
   // Wait a small delay to ensure modal hides completely and classes apply
-  setTimeout(() => {
-    html2canvas(canvasWrapper, {
-      scale: 2, // high quality
-      useCORS: true, // fetch cross-origin images
-      allowTaint: false,
-      backgroundColor: null // transparent/preset background
-    }).then(canvas => {
+  setTimeout(async () => {
+    try {
+      await waitForCanvasImages(canvasWrapper);
+      const canvas = await window.html2canvas(canvasWrapper, {
+        scale: 2, // high quality
+        useCORS: true, // fetch cross-origin images
+        allowTaint: false,
+        imageTimeout: 4000,
+        backgroundColor: null, // transparent/preset background
+        onclone: prepareVisualExportClone
+      });
       canvasWrapper.classList.remove('printing-in-progress');
 
       const imgData = canvas.toDataURL('image/png');
@@ -2656,11 +2716,11 @@ async function generateVisualBoardPdf() {
       const cleanFileName = b.title.toLowerCase().replace(/[^a-z0-9]+/g, '_') + '_visual.pdf';
       doc.save(cleanFileName);
       showSyncBanner('Successfully downloaded visual landscape PDF!', false);
-    }).catch(err => {
+    } catch (err) {
       canvasWrapper.classList.remove('printing-in-progress');
       console.error("html2canvas error:", err);
       showSyncBanner('Failed to render visual board canvas.', true);
-    });
+    }
   }, 100);
 }
 

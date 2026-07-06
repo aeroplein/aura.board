@@ -30,7 +30,7 @@ namespace DigitalVisionBoard.Controllers
             if (string.IsNullOrWhiteSpace(accessKey) || accessKey == "YOUR_UNSPLASH_ACCESS_KEY")
             {
                 var fallbackUrl = GetFallbackImageUrl(cleanedQuery, sig);
-                return wantsJson ? Ok(new { url = fallbackUrl }) : Redirect(fallbackUrl);
+                return wantsJson ? Ok(new { url = fallbackUrl }) : await ReturnImageOrRedirectAsync(fallbackUrl);
             }
 
             try
@@ -61,7 +61,7 @@ namespace DigitalVisionBoard.Controllers
                     var imageUrl = regularUrl.GetString();
                     if (!string.IsNullOrWhiteSpace(imageUrl))
                     {
-                        return wantsJson ? Ok(new { url = imageUrl }) : Redirect(imageUrl);
+                        return wantsJson ? Ok(new { url = imageUrl }) : await ReturnImageOrRedirectAsync(imageUrl);
                     }
                 }
             }
@@ -71,7 +71,35 @@ namespace DigitalVisionBoard.Controllers
             }
 
             var finalFallbackUrl = GetFallbackImageUrl(cleanedQuery, sig);
-            return wantsJson ? Ok(new { url = finalFallbackUrl }) : Redirect(finalFallbackUrl);
+            return wantsJson ? Ok(new { url = finalFallbackUrl }) : await ReturnImageOrRedirectAsync(finalFallbackUrl);
+        }
+
+        private async Task<IActionResult> ReturnImageOrRedirectAsync(string imageUrl)
+        {
+            try
+            {
+                using var response = await _httpClient.GetAsync(imageUrl);
+                if (!response.IsSuccessStatusCode)
+                {
+                    _logger.LogWarning("Image proxy fetch failed with status {StatusCode}. Falling back to redirect.", response.StatusCode);
+                    return Redirect(imageUrl);
+                }
+
+                var contentType = response.Content.Headers.ContentType?.MediaType;
+                if (string.IsNullOrWhiteSpace(contentType) || !contentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
+                {
+                    _logger.LogWarning("Image proxy fetch returned unexpected content type {ContentType}. Falling back to redirect.", contentType);
+                    return Redirect(imageUrl);
+                }
+
+                var imageBytes = await response.Content.ReadAsByteArrayAsync();
+                return File(imageBytes, contentType);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Image proxy fetch failed. Falling back to redirect.");
+                return Redirect(imageUrl);
+            }
         }
 
         private static string GetFallbackImageUrl(string query, string? sig)
