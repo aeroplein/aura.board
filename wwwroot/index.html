@@ -961,8 +961,8 @@
         }
       }
     </style>
-    <script type="module" crossorigin src="/assets/index-sBZHrxG4.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-BIbm_CSu.css">
+    <script type="module" crossorigin src="/assets/index-9SKYAYaH.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-DcLEpIYF.css">
   </head>
   <body class="font-sans text-[#5E548E] dark:text-[#FFF] relative min-h-screen">
 
@@ -1357,7 +1357,7 @@
           <h2 class="fs-3 font-extrabold text-[#5E548E] d-flex align-items-center gap-1.5 mb-1">
             <i data-lucide="settings" class="w-7 h-7 text-[#9F86C0]"></i> User Settings
           </h2>
-          <p class="text-sm text-[#5E548E]/80">Review your profile, preferences, AI privacy notes, and current session controls.</p>
+          <p class="text-sm text-[#5E548E]/80">Make the workspace feel like yours: name, handle, photo, preferences, and session controls.</p>
         </div>
 
         <div class="row g-4">
@@ -1386,9 +1386,47 @@
                 <!-- Profile summary -->
                 <div class="p-3 rounded-2xl bg-white/50 dark:bg-black/10 border border-[#C8B6FF]/25">
                   <span class="font-sans font-bold text-[#5E548E] block">Profile Summary</span>
+                  <span id="settings-profile-welcome" class="text-[11px] text-[#5E548E]/80 block font-sans mt-1">Your profile belongs here.</span>
                   <span id="settings-profile-name" class="text-[11px] text-[#9F86C0] block font-sans mt-1">-</span>
+                  <span id="settings-profile-username" class="text-[10px] text-[#9F86C0] block font-mono">-</span>
                   <span id="settings-profile-email" class="text-[10px] text-[#9F86C0] block font-mono break-all">-</span>
                 </div>
+
+                <!-- Profile customization -->
+                <form id="settings-profile-form" class="p-3 rounded-2xl bg-white/50 dark:bg-black/10 border border-[#C8B6FF]/25 space-y-3 font-sans">
+                  <div class="d-flex align-items-center gap-3">
+                    <div id="settings-avatar-preview" class="h-16 w-16 rounded-full bg-gradient-to-tr from-lilac to-lavender d-flex align-items-center justify-content-center text-[#5E548E] font-extrabold text-lg ring-2 ring-[#C8B6FF]/35 overflow-hidden shrink-0">
+                      --
+                    </div>
+                    <div class="min-w-0">
+                      <span class="font-bold text-[#5E548E] block">Profile Photo</span>
+                      <span id="settings-avatar-status" class="text-[10px] text-[#9F86C0] block">Using initials</span>
+                      <span class="text-[10px] text-[#9F86C0] block">Upload a small JPG, PNG, WebP, or GIF for your account badge.</span>
+                    </div>
+                  </div>
+
+                  <div class="row g-2">
+                    <div class="col-sm-6">
+                      <label for="settings-profile-display-name" class="form-label font-bold text-[#5E548E]/80 font-mono text-[10px] uppercase mb-1">Display Name</label>
+                      <input type="text" id="settings-profile-display-name" class="form-control rounded-xl border-[#C8B6FF]/35 bg-white/60 text-xs py-2 text-[#5E548E]" maxlength="80" required />
+                    </div>
+                    <div class="col-sm-6">
+                      <label for="settings-profile-username-input" class="form-label font-bold text-[#5E548E]/80 font-mono text-[10px] uppercase mb-1">Username</label>
+                      <input type="text" id="settings-profile-username-input" class="form-control rounded-xl border-[#C8B6FF]/35 bg-white/60 text-xs py-2 text-[#5E548E]" placeholder="@yourname" maxlength="31" />
+                    </div>
+                  </div>
+
+                  <input type="hidden" id="settings-profile-avatar-url" />
+                  <div>
+                    <label for="settings-profile-avatar-file" class="form-label font-bold text-[#5E548E]/80 font-mono text-[10px] uppercase mb-1">Change Profile Photo</label>
+                    <input type="file" id="settings-profile-avatar-file" class="form-control rounded-xl border-[#C8B6FF]/35 bg-white/60 text-xs py-1.5 text-[#5E548E]" accept="image/*" />
+                  </div>
+
+                  <div class="d-flex justify-content-between align-items-center gap-2">
+                    <button id="settings-profile-clear-avatar" type="button" class="px-3 py-1.5 rounded-xl border border-[#C8B6FF]/40 text-[#5E548E] hover:bg-white text-[11px] font-bold cursor-pointer">Use Initials</button>
+                    <button id="settings-profile-save" type="submit" class="px-3 py-1.5 rounded-xl bg-[#5E548E] hover:bg-[#9F86C0] text-white text-[11px] font-bold cursor-pointer">Save Profile</button>
+                  </div>
+                </form>
                 
                 <!-- Notifications -->
                 <div class="d-flex justify-content-between align-items-center p-3 rounded-2xl bg-white/50 dark:bg-black/10 border border-[#C8B6FF]/25">
@@ -1572,7 +1610,7 @@
               <i data-lucide="sparkles" class="w-6 h-6"></i>
             </div>
             <h3 class="modal-title fs-4 font-bold" id="authModalTitle">Welcome to aura.</h3>
-            <p class="text-xs text-[#9F86C0] mt-1">Immersive multi-mode thinking tools. Select access model:</p>
+            <p id="auth-modal-intro" class="text-xs text-[#9F86C0] mt-1">Choose the name and handle that will live on your creative workspace.</p>
           </div>
           <div class="modal-body py-3">
             
@@ -1582,12 +1620,21 @@
             <form id="auth-form" class="space-y-3" novalidate>
               <div id="group-auth-name">
                 <label for="auth-input-name" class="form-label text-xs font-bold font-mono text-[#5E548E]/80">Full Name</label>
-                <input type="text" id="auth-input-name" class="form-control rounded-xl border-[#C8B6FF]/35 bg-[#F8F7FF] text-xs py-2 text-[#5E548E] font-medium" placeholder="E.g. Pelin Kaya" />
+                <input type="text" id="auth-input-name" class="form-control rounded-xl border-[#C8B6FF]/35 bg-[#F8F7FF] text-xs py-2 text-[#5E548E] font-medium" placeholder="E.g. Creative Dreamer" />
+              </div>
+
+              <div id="group-auth-username">
+                <label for="auth-input-username" class="form-label text-xs font-bold font-mono text-[#5E548E]/80">Username</label>
+                <div class="input-group input-group-sm">
+                  <span class="input-group-text rounded-start-xl border-[#C8B6FF]/35 bg-white/70 text-[#9F86C0] font-bold">@</span>
+                  <input type="text" id="auth-input-username" class="form-control rounded-end-xl border-[#C8B6FF]/35 bg-[#F8F7FF] text-xs py-2 text-[#5E548E] font-medium" placeholder="creativehandle" maxlength="30" autocomplete="username" />
+                </div>
+                <p class="text-[10px] text-[#9F86C0] mt-1 mb-0">This appears on your profile badge and can be changed later.</p>
               </div>
 
               <div>
                 <label for="auth-input-email" class="form-label text-xs font-bold font-mono text-[#5E548E]/80">Email address</label>
-                <input type="email" id="auth-input-email" class="form-control rounded-xl border-[#C8B6FF]/35 bg-[#F8F7FF] text-xs py-2 text-[#5E548E]" placeholder="pelin@studio.com" required />
+                <input type="email" id="auth-input-email" class="form-control rounded-xl border-[#C8B6FF]/35 bg-[#F8F7FF] text-xs py-2 text-[#5E548E]" placeholder="you@example.com" required />
               </div>
 
               <div>

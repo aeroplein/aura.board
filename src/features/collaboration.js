@@ -24,7 +24,7 @@ export async function fetchCollaborationActivity({
 
       feed.innerHTML = logs.map(log => {
         const timeStr = new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        const namePart = escapeHtml((log.userEmail || 'collaborator').split('@')[0]);
+        const namePart = escapeHtml(log.actorLabel || (log.userEmail || 'collaborator').split('@')[0]);
         const actionDescription = escapeHtml(log.actionDescription || 'Updated a board.');
         return `
           <li class="feed-note p-2.5 rounded-xl bg-white dark:bg-[#1E1B2E] border border-[#C8B6FF]/20 font-mono shadow-xs mb-2">

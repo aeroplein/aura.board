@@ -10,7 +10,7 @@ This project is intentionally small-scale. It is designed to look professional, 
 - Backend: ASP.NET Core MVC/API on .NET 9
 - Database: PostgreSQL with Entity Framework Core
 - AI integration: Google Gemini API, with local fallback responses when no API key is configured
-- Email: Optional SMTP invite emails for board collaborators
+- Email: Optional SMTP invite and verification emails
 
 ## Architecture
 
@@ -28,7 +28,7 @@ Frontend (Vite + Vanilla JavaScript)
 
 Optional Integrations:
 - Google Gemini API (AI recommendations)
-- SMTP Email Service (collaboration invites)
+- SMTP Email Service (collaboration invites and email verification)
 ```
 
 ## Current Architecture
@@ -63,7 +63,11 @@ Passwords use PBKDF2-SHA512 with 210,000 iterations for new hashes. Older 1,000-
 
 Invalid login attempts return the same generic error for unknown emails and wrong passwords. This keeps the API simple while avoiding account enumeration in a student-project-friendly way.
 
-Email verification fields are present for professional account hygiene. SMTP is optional, so local development can still run without a mail server.
+Registration normalizes email addresses, checks basic email shape and domain structure, optionally requires MX records, blocks configured typo/disposable domains, creates an email verification token, and sends a verification link when SMTP is configured.
+
+The app does not pretend that signup-form validation proves a mailbox exists. DNS checks only show whether a domain is plausible for email. The verification link is the proof that the user controls the address.
+
+Local development keeps advanced email validation enabled but disables MX checks in `appsettings.Development.json`, so test accounts are not blocked by DNS/network issues. Production-style configuration keeps `AdvancedEmailValidation:RequireMxRecord` enabled in `appsettings.json`.
 
 ## Sync Engine
 
@@ -126,6 +130,7 @@ The app uses real password hashing and HttpOnly cookie sessions, but it does not
 
 - `POST /api/auth/register` returns `201 Created` when a user is registered.
 - Duplicate registration emails return `409 Conflict`.
+- `GET /api/auth/verify-email?email={email}&token={token}` verifies an email verification token.
 - `POST /api/auth/login` sets the HttpOnly JWT auth cookie.
 - `GET /api/auth/session` returns the current authenticated user from the cookie.
 - `POST /api/auth/logout` clears the auth cookie.
@@ -194,8 +199,9 @@ Copy `.env.example` to `.env` for local development values. `.env` is ignored by
 
 - `JWT_SECRET`: Required for signed auth cookies. Use at least 32 characters.
 - `GEMINI_API_KEY`: Optional. Enables Gemini-generated board recommendations.
-- `APP_URL`: Optional. Used for invite links.
-- `SMTP_HOST`, `SMTP_PORT`, `SMTP_USE_SSL`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_FROM`: Optional invite email settings.
+- `APP_URL`: Optional. Used for invite links and as a fallback base URL for verification links.
+- `APP_BASE_URL`: Optional. Used for email verification links when it differs from `APP_URL`.
+- `SMTP_HOST`, `SMTP_PORT`, `SMTP_USE_SSL`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_FROM`: Optional invite and verification email settings.
 
 `appsettings.json` includes local-development placeholders so the project can run for coursework. Replace them outside local development and keep real secrets in environment variables or an untracked `.env` file.
 
@@ -206,7 +212,7 @@ Copy `.env.example` to `.env` for local development values. `.env` is ignored by
 - Add movable quote, note, text, and image items
 - Upload image content
 - Ask for AI board recommendations and inspiration prompts
-- Send optional collaborator invite emails
+- Send optional collaborator invite and email verification messages
 - View recent board activity
 
 ## Screenshots

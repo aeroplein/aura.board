@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.EntityFrameworkCore;
@@ -68,7 +69,8 @@ builder.Services.AddCors(options =>
 });
 
 // Configure Database Connection
-var connectionString = GetDatabaseConnectionString(builder.Configuration);
+ValidateProductionConfiguration(builder.Configuration, builder.Environment);
+var connectionString = GetDatabaseConnectionString(builder.Configuration, builder.Environment.IsProduction());
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(connectionString));
@@ -89,7 +91,7 @@ builder.Services.PostConfigure<MailSettings>(mail =>
     mail.Username = FirstConfigured(mail.Username, "SMTP_USERNAME") ?? mail.Username;
     mail.Password = FirstConfigured(mail.Password, "SMTP_PASSWORD") ?? mail.Password;
     mail.FromEmail = FirstConfigured(mail.FromEmail, "SMTP_FROM", "SMTP_USERNAME") ?? mail.FromEmail;
-    mail.AppBaseUrl = FirstConfigured(mail.AppBaseUrl, "APP_BASE_URL") ?? mail.AppBaseUrl;
+    mail.AppBaseUrl = FirstConfigured(null, "APP_BASE_URL", "APP_URL") ?? mail.AppBaseUrl;
 
     var portText = FirstConfigured(null, "SMTP_PORT");
     if (int.TryParse(portText, out var port))
@@ -118,6 +120,16 @@ var port = Environment.GetEnvironmentVariable("PORT") ?? "5000";
 builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
 
 var app = builder.Build();
+
+if (app.Environment.IsProduction())
+{
+    app.UseForwardedHeaders(new ForwardedHeadersOptions
+    {
+        ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+    });
+    app.UseHsts();
+    app.UseHttpsRedirection();
+}
 
 // Automatically run EF migrations at startup
 using (var scope = app.Services.CreateScope())
@@ -167,7 +179,7 @@ app.MapFallbackToController("Index", "Home");
 
 app.Run();
 
-static string GetDatabaseConnectionString(IConfiguration configuration)
+static string GetDatabaseConnectionString(IConfiguration configuration, bool isProduction)
 {
     var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
     if (!string.IsNullOrWhiteSpace(databaseUrl))
@@ -190,7 +202,75 @@ static string GetDatabaseConnectionString(IConfiguration configuration)
         return configuredConnectionString;
     }
 
+    if (isProduction)
+    {
+        throw new InvalidOperationException("Production requires DATABASE_URL, DEFAULT_CONNECTION, or ConnectionStrings:DefaultConnection with real credentials.");
+    }
+
     return "Host=localhost;Database=aura_board;Username=postgres;Password=postgres";
+}
+
+static void ValidateProductionConfiguration(IConfiguration configuration, IHostEnvironment environment)
+{
+    if (!environment.IsProduction())
+    {
+        return;
+    }
+
+    var allowedHosts = configuration["AllowedHosts"];
+    if (string.IsNullOrWhiteSpace(allowedHosts) ||
+        allowedHosts.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Any(host => host is "*" or "0.0.0.0"))
+    {
+        throw new InvalidOperationException("Production AllowedHosts must list the deployed host names; wildcard hosts are not allowed.");
+    }
+
+    var jwtSecret = Environment.GetEnvironmentVariable("JWT_SECRET");
+    if (IsUnsafeSecret(jwtSecret))
+    {
+        throw new InvalidOperationException("Production JWT_SECRET must be set from the environment to a unique value of at least 32 characters.");
+    }
+
+    var configuredConnectionString = Environment.GetEnvironmentVariable("DATABASE_URL")
+        ?? Environment.GetEnvironmentVariable("DEFAULT_CONNECTION")
+        ?? Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection")
+        ?? configuration.GetConnectionString("DefaultConnection");
+
+    if (IsUnsafeConnectionString(configuredConnectionString))
+    {
+        throw new InvalidOperationException("Production database connection string is missing, placeholder, or uses unsafe local defaults.");
+    }
+}
+
+static bool IsUnsafeSecret(string? secret)
+{
+    if (string.IsNullOrWhiteSpace(secret) || secret.Length < 32)
+    {
+        return true;
+    }
+
+    var lowered = secret.ToLowerInvariant();
+    return lowered.Contains("replace-me") ||
+        lowered.Contains("replace_with") ||
+        lowered.Contains("fake") ||
+        lowered.Contains("placeholder") ||
+        lowered.Contains("your_");
+}
+
+static bool IsUnsafeConnectionString(string? connectionString)
+{
+    if (string.IsNullOrWhiteSpace(connectionString))
+    {
+        return true;
+    }
+
+    var lowered = connectionString.ToLowerInvariant();
+    return lowered.Contains("your_database_user") ||
+        lowered.Contains("your_database_password") ||
+        lowered.Contains("username=postgres;password=postgres") ||
+        lowered.Contains("user id=postgres;password=postgres") ||
+        lowered.Contains("://user:password@") ||
+        lowered.Contains("localhost");
 }
 
 static string? FirstConfigured(string? currentValue, params string[] keys)

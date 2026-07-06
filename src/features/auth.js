@@ -67,17 +67,17 @@ export function renderUserProfileUI({
   if (currentUser) {
     const safeName = escapeHtml(currentUser.name || 'User');
     const safeEmail = escapeHtml(currentUser.email || 'Signed in');
-    const initials = (currentUser.name || 'US').substring(0, 2).toUpperCase();
+    const username = String(currentUser.username || '').trim();
+    const safeUsername = username ? escapeHtml(`@${username.replace(/^@/, '')}`) : 'Curating Active';
+    const avatarMarkup = renderSessionAvatar(currentUser);
     container.innerHTML = `
       <div class="session-card d-flex align-items-center gap-2">
         <button id="btn-profile-settings" type="button" class="session-profile-button d-flex align-items-center gap-2 border-0 bg-transparent p-0 cursor-pointer" aria-label="Open user settings for ${safeName}" title="${safeEmail}">
           <span class="session-copy text-right">
             <span class="session-name text-xs font-bold text-plum dark:text-cream mb-0 leading-tight d-block">${safeName}</span>
-            <span class="session-status text-[9px] font-mono text-dusty uppercase d-block">Curating Active</span>
+            <span class="session-status text-[9px] font-mono text-dusty uppercase d-block">${safeUsername}</span>
           </span>
-          <span class="session-avatar h-8 w-8 rounded-full bg-gradient-to-tr from-lilac to-lavender d-flex align-items-center justify-content-center text-[#5E548E] font-bold text-xs ring-2 ring-[#C8B6FF]/30 select-none">
-            ${escapeHtml(initials)}
-          </span>
+          ${avatarMarkup}
         </button>
         <button id="btn-logout" type="button" class="p-1.5 rounded-lg border hover:bg-red-50 text-red-500 cursor-pointer align-middle ml-1" title="Logout Session" aria-label="Log out">
           <i data-lucide="log-out" class="w-3.5 h-3.5"></i>
@@ -99,6 +99,35 @@ export function renderUserProfileUI({
       authModalObj.show();
     });
   }
+}
+
+function renderSessionAvatar(user) {
+  const avatarUrl = String(user?.avatarUrl || '').trim();
+  const initials = getUserInitials(user);
+
+  if (avatarUrl) {
+    return `
+      <span class="session-avatar h-8 w-8 rounded-full d-inline-flex align-items-center justify-content-center overflow-hidden ring-2 ring-[#C8B6FF]/30 bg-white/70 select-none">
+        <img src="${escapeHtml(avatarUrl)}" alt="${escapeHtml(user?.name || 'User')} profile picture" class="w-full h-full object-cover" referrerpolicy="no-referrer" />
+      </span>
+    `;
+  }
+
+  return `
+    <span class="session-avatar h-8 w-8 rounded-full bg-gradient-to-tr from-lilac to-lavender d-flex align-items-center justify-content-center text-[#5E548E] font-bold text-xs ring-2 ring-[#C8B6FF]/30 select-none">
+      ${escapeHtml(initials)}
+    </span>
+  `;
+}
+
+function getUserInitials(user) {
+  const source = String(user?.name || user?.username || 'US').trim();
+  const parts = source.split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) {
+    return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+  }
+
+  return source.substring(0, 2).toUpperCase();
 }
 
 export function setupAuthForm({
@@ -133,9 +162,10 @@ export function setupAuthForm({
     const email = document.getElementById('auth-input-email').value;
     const password = document.getElementById('auth-input-password').value;
     const name = document.getElementById('auth-input-name').value;
+    const username = document.getElementById('auth-input-username')?.value.trim().replace(/^@+/, '');
 
     const endpoint = isRegisterMode ? '/api/auth/register' : '/api/auth/login';
-    const bodyObj = isRegisterMode ? { email, password, name } : { email, password };
+    const bodyObj = isRegisterMode ? { email, password, name, username } : { email, password };
 
     try {
       const res = await fetchWithCredentials(endpoint, {
@@ -173,18 +203,24 @@ export function setupAuthForm({
 
 export function toggleAuthMode(regMode) {
   const nameGroup = document.getElementById('group-auth-name');
+  const usernameGroup = document.getElementById('group-auth-username');
   const title = document.getElementById('authModalTitle');
+  const intro = document.getElementById('auth-modal-intro');
   const toggleBtn = document.getElementById('btn-toggle-auth-mode');
   const submitBtn = document.getElementById('btn-auth-submit');
 
   if (regMode) {
     nameGroup.classList.remove('d-none');
+    usernameGroup?.classList.remove('d-none');
     title.textContent = 'Curate in aura.board';
+    if (intro) intro.textContent = 'Choose the name and handle that will live on your creative workspace.';
     toggleBtn.innerHTML = 'Already curating? <strong class="text-[#5E548E]">Sign In</strong>';
     submitBtn.textContent = 'Assemble Workspace';
   } else {
     nameGroup.classList.add('d-none');
+    usernameGroup?.classList.add('d-none');
     title.textContent = 'Welcome back to aura.';
+    if (intro) intro.textContent = 'Sign back into the studio that already knows your boards, theme, and profile.';
     toggleBtn.innerHTML = 'New to the studio? <strong class="text-[#5E548E]">Sign Up</strong>';
     submitBtn.textContent = 'Unlock Canvas Gate';
   }
@@ -210,6 +246,10 @@ function getFriendlyAuthError(message) {
 
   if (lowerMessage.includes('not allowed')) {
     return 'Please use a different email address.';
+  }
+
+  if (lowerMessage.includes('username') && lowerMessage.includes('taken')) {
+    return 'That username is already taken. Try a small variation.';
   }
 
   return message;

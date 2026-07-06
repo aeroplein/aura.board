@@ -60,6 +60,7 @@ namespace DigitalVisionBoard.Services
         public async Task<AuthResponse> RegisterAsync(RegisterRequest request)
         {
             var email = NormalizeEmail(request.Email);
+            var username = NormalizeUsername(request.Username);
             var emailValidation = await _advancedEmailValidator.ValidateAsync(email);
             if (!emailValidation.IsValid)
             {
@@ -71,12 +72,18 @@ namespace DigitalVisionBoard.Services
                 throw new InvalidOperationException("An account with this email already exists.");
             }
 
+            if (await _context.Users.AnyAsync(u => u.Username == username))
+            {
+                throw new InvalidOperationException("That username is already taken.");
+            }
+
             var (salt, passwordHash) = HashPassword(request.Password);
             var emailVerificationToken = await GenerateUniqueEmailVerificationTokenAsync();
             var user = new User
             {
                 Email = email,
                 Name = request.Name.Trim(),
+                Username = username,
                 PasswordHash = passwordHash,
                 Salt = salt,
                 EmailVerificationToken = emailVerificationToken,
@@ -173,7 +180,7 @@ namespace DigitalVisionBoard.Services
             var expiresAt = DateTime.UtcNow.Add(TokenLifetime);
             var token = CreateJwt(user, expiresAt);
             var preferencesDto = new UserPreferencesDto(user.DarkMode, user.NotificationsEnabled, user.HighContrast);
-            var userResponse = new UserResponse(user.Id, user.Email, user.Name, preferencesDto);
+            var userResponse = new UserResponse(user.Id, user.Email, user.Name, user.Username, user.AvatarUrl, preferencesDto);
 
             return new AuthResponse(userResponse, expiresAt, token);
         }
@@ -297,7 +304,7 @@ namespace DigitalVisionBoard.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Email verification message failed for {Email}", user.Email);
+                _logger.LogError(ex, "Email verification message failed for user {UserId}", user.Id);
             }
         }
 
@@ -361,6 +368,11 @@ namespace DigitalVisionBoard.Services
         private static string NormalizeEmail(string email)
         {
             return email.Trim().ToLowerInvariant();
+        }
+
+        public static string NormalizeUsername(string username)
+        {
+            return username.Trim().TrimStart('@').ToLowerInvariant();
         }
 
         private static string Base64UrlEncode(byte[] bytes)

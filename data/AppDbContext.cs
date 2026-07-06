@@ -41,6 +41,12 @@ namespace DigitalVisionBoard.Data
                 entity.Property(u => u.Name)
                     .HasMaxLength(80);
 
+                entity.Property(u => u.Username)
+                    .HasMaxLength(30);
+
+                entity.Property(u => u.AvatarUrl)
+                    .HasMaxLength(2048);
+
                 entity.Property(u => u.PasswordHash)
                     .HasMaxLength(256);
 
@@ -85,6 +91,9 @@ namespace DigitalVisionBoard.Data
                 entity.Property(bi => bi.Title)
                     .HasMaxLength(120);
 
+                entity.Property(bi => bi.Content)
+                    .HasMaxLength(4096);
+
                 entity.Property(bi => bi.Caption)
                     .HasMaxLength(500);
 
@@ -115,6 +124,8 @@ namespace DigitalVisionBoard.Data
             {
                 entity.Property(img => img.MimeType)
                     .HasMaxLength(80);
+
+                entity.HasIndex(img => img.UploaderUserId);
             });
 
             // Configure User Email unique constraint & index
@@ -125,6 +136,11 @@ namespace DigitalVisionBoard.Data
             modelBuilder.Entity<User>()
                 .HasIndex(u => u.EmailVerificationToken)
                 .IsUnique();
+
+            modelBuilder.Entity<User>()
+                .HasIndex(u => u.Username)
+                .IsUnique()
+                .HasFilter("\"Username\" IS NOT NULL");
 
             // Configure BoardCollaborator composite primary key
             modelBuilder.Entity<BoardCollaborator>()

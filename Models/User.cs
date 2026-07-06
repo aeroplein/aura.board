@@ -9,6 +9,8 @@ namespace DigitalVisionBoard.Models
         public Guid Id { get; set; } = Guid.NewGuid();
         public required string Email { get; set; }
         public required string Name { get; set; }
+        public string? Username { get; set; }
+        public string? AvatarUrl { get; set; }
         public required string PasswordHash { get; set; }
         public required string Salt { get; set; }
         public bool IsEmailVerified { get; set; } = false;

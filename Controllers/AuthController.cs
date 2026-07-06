@@ -3,6 +3,7 @@ using DigitalVisionBoard.Models;
 using DigitalVisionBoard.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 
 namespace DigitalVisionBoard.Controllers
@@ -37,7 +38,7 @@ namespace DigitalVisionBoard.Controllers
             }
             catch (InvalidOperationException ex)
             {
-                _logger.LogInformation(ex, "Registration rejected for {Email}", request.Email);
+                _logger.LogInformation(ex, "Registration rejected.");
                 if (ex is AdvancedEmailValidationException)
                 {
                     return BadRequest(new { error = ex.Message });
@@ -47,7 +48,7 @@ namespace DigitalVisionBoard.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Registration failed for {Email}", request.Email);
+                _logger.LogError(ex, "Registration failed.");
                 return StatusCode(StatusCodes.Status503ServiceUnavailable, new { error = "Accounts are temporarily unavailable. Check the database configuration and try again." });
             }
         }
@@ -69,7 +70,7 @@ namespace DigitalVisionBoard.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Login failed for {Email}", request.Email);
+                _logger.LogError(ex, "Login failed.");
                 return StatusCode(StatusCodes.Status503ServiceUnavailable, new { error = "Accounts are temporarily unavailable. Check the database configuration and try again." });
             }
         }
@@ -83,8 +84,7 @@ namespace DigitalVisionBoard.Controllers
                 return Unauthorized(new { error = "Unauthorized: Invalid or expired token." });
             }
 
-            var preferencesDto = new UserPreferencesDto(user.DarkMode, user.NotificationsEnabled, user.HighContrast);
-            return Ok(new { user = new UserResponse(user.Id, user.Email, user.Name, preferencesDto) });
+            return Ok(new { user = ToUserResponse(user) });
         }
 
         [HttpGet("verify-email")]
@@ -106,7 +106,7 @@ namespace DigitalVisionBoard.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Email verification failed for {Email}", email);
+                _logger.LogError(ex, "Email verification failed.");
                 return StatusCode(StatusCodes.Status503ServiceUnavailable, new { error = "Email verification is temporarily unavailable." });
             }
         }
@@ -134,6 +134,50 @@ namespace DigitalVisionBoard.Controllers
             await _context.SaveChangesAsync();
 
             return Ok(new { success = true, preferences = request });
+        }
+
+        [HttpPost("profile")]
+        public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileRequest request)
+        {
+            var user = await GetCurrentUserAsync();
+            if (user == null)
+            {
+                return Unauthorized(new { error = "Unauthorized: Invalid or expired token." });
+            }
+
+            var cleanName = request.Name.Trim();
+            var cleanUsername = string.IsNullOrWhiteSpace(request.Username)
+                ? null
+                : AuthService.NormalizeUsername(request.Username);
+            var cleanAvatarUrl = string.IsNullOrWhiteSpace(request.AvatarUrl)
+                ? null
+                : request.AvatarUrl.Trim();
+
+            if (cleanUsername is { Length: > 0 } &&
+                !System.Text.RegularExpressions.Regex.IsMatch(cleanUsername, "^[A-Za-z0-9_.]{3,30}$"))
+            {
+                return BadRequest(new { error = "Username can use 3-30 letters, numbers, underscores, or dots." });
+            }
+
+            if (cleanUsername != null &&
+                await _context.Users.AnyAsync(u => u.Id != user.Id && u.Username == cleanUsername))
+            {
+                return Conflict(new { error = "That username is already taken." });
+            }
+
+            user.Name = cleanName;
+            user.Username = cleanUsername;
+            user.AvatarUrl = cleanAvatarUrl;
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new { success = true, user = ToUserResponse(user) });
+        }
+
+        private static UserResponse ToUserResponse(User user)
+        {
+            var preferencesDto = new UserPreferencesDto(user.DarkMode, user.NotificationsEnabled, user.HighContrast);
+            return new UserResponse(user.Id, user.Email, user.Name, user.Username, user.AvatarUrl, preferencesDto);
         }
 
         private void SetAuthCookie(AuthResponse response)
