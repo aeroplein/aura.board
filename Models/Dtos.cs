@@ -40,7 +40,7 @@ namespace DigitalVisionBoard.Models
     // --- BOARD DTOS ---
     public record BoardItemResponse(
         [param: Required, StringLength(120)] string Id,
-        [param: Required, RegularExpression("^(quote|note|image|text)$")] string Type,
+        [param: Required, RegularExpression("^(quote|note|image|text|music)$")] string Type,
         [param: Required, StringLength(120)] string Title,
         [param: StringLength(4096)]
         string? Content,
@@ -175,6 +175,16 @@ namespace DigitalVisionBoard.Models
         [param: Required, MinLength(1), MaxLength(21_000_000)] string Base64Data,
         [param: RegularExpression("^image/(jpeg|png|webp|gif)$")] string? MimeType,
         [param: StringLength(160)] string? FileName
+    );
+
+    public record SpotifyTrackSearchResult(
+        string Id,
+        string Name,
+        string Artist,
+        string? Album,
+        string? ImageUrl,
+        string SpotifyUrl,
+        string EmbedUrl
     );
 
     internal static class DtoValidation

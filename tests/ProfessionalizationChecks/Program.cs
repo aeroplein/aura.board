@@ -113,6 +113,7 @@ static void CheckBoardServiceNormalization()
     Assert(collaborators.Count == 2, "Duplicate collaborator emails should be collapsed.");
     Assert(collaborators.All(c => c.CollaboratorEmail == c.CollaboratorEmail.ToLowerInvariant()), "Collaborator emails should be lowercase.");
     Assert(service.NormalizeBoardItemType("IMAGE") == "image", "Known item type should normalize.");
+    Assert(service.NormalizeBoardItemType("MUSIC") == "music", "Spotify music item type should normalize.");
     Assert(service.NormalizeBoardItemType("unknown") == "note", "Unknown item type should fall back to note.");
 }
 

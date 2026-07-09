@@ -172,7 +172,7 @@ namespace DigitalVisionBoard.Migrations
 
                             t.HasCheckConstraint("CK_BoardItems_Size", "\"Width\" > 0 AND \"Height\" > 0");
 
-                            t.HasCheckConstraint("CK_BoardItems_Type", "\"Type\" IN ('quote', 'note', 'image', 'text')");
+                            t.HasCheckConstraint("CK_BoardItems_Type", "\"Type\" IN ('quote', 'note', 'image', 'text', 'music')");
                         });
                 });
 

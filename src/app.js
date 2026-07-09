@@ -35,7 +35,33 @@ const resolvedImageCache = new Map();
 
 function normalizeBoardItemType(type) {
   const normalized = String(type || '').trim().toLowerCase();
-  return ['note', 'quote', 'image', 'text'].includes(normalized) ? normalized : 'note';
+  return ['note', 'quote', 'image', 'text', 'music'].includes(normalized) ? normalized : 'note';
+}
+
+function getSpotifyTrackId(value) {
+  const input = String(value || '').trim();
+  const uriMatch = input.match(/^spotify:track:([A-Za-z0-9]{22})$/i);
+  if (uriMatch) return uriMatch[1];
+
+  try {
+    const url = new URL(input);
+    if (url.protocol !== 'https:' || url.hostname !== 'open.spotify.com') return null;
+    const pathMatch = url.pathname.match(/\/track\/([A-Za-z0-9]{22})(?:\/|$)/i);
+    return pathMatch ? pathMatch[1] : null;
+  } catch {
+    return null;
+  }
+}
+
+function getCanonicalSpotifyTrackUrl(value) {
+  const trackId = getSpotifyTrackId(value);
+  return trackId ? `https://open.spotify.com/track/${trackId}` : null;
+}
+
+function getSpotifyTrackField(track, field) {
+  if (!track) return '';
+  const pascalField = field.charAt(0).toUpperCase() + field.slice(1);
+  return track[field] || track[pascalField] || '';
 }
 
 function parseChecklistLine(line) {
@@ -729,6 +755,21 @@ function refreshStudioDisplay() {
           <div class="absolute bottom-0 inset-x-0 p-1 bg-black/45 text-[9px] text-white italic truncate text-center">${safeCaption}</div>
         </div>
       `;
+    } else if (it.type === 'music') {
+      const spotifyTrackId = getSpotifyTrackId(revealedPayload);
+      subHtml = spotifyTrackId
+        ? `<div class="spotify-embed-wrap my-1.5 rounded-xl overflow-hidden">
+             <iframe
+               src="https://open.spotify.com/embed/track/${spotifyTrackId}?utm_source=generator"
+               title="Spotify player for ${safeTitle}"
+               width="100%"
+               height="152"
+               frameborder="0"
+               allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+               loading="lazy"></iframe>
+           </div>
+           ${it.caption ? `<p class="text-[10px] italic text-dusty mt-1 mb-0">${safeCaption}</p>` : ''}`
+        : '<p class="text-[10px] text-rose-500 my-2">This Spotify track link is no longer valid.</p>';
     } else {
       subHtml = `<p class="text-xs my-2 leading-normal break-words">${safePayload}</p>`;
     }
@@ -1228,23 +1269,33 @@ function setupItemForm() {
   typeSelect.addEventListener('change', () => {
     const val = typeSelect.value;
     const imageUploadWrapper = document.getElementById('item-image-upload-wrapper');
+    const spotifySearchWrapper = document.getElementById('item-spotify-search-wrapper');
     if (val === 'image') {
       imageUploadWrapper?.classList.remove('d-none');
+      spotifySearchWrapper?.classList.add('d-none');
       labelContent.textContent = 'Image Keyword or Direct Image URL';
       labelCaption.textContent = 'Aesthetic Photo Tagline / Caption';
       extraCaptionWrap.classList.remove('d-none');
       updateImageSourceModeUI();
     } else {
       imageUploadWrapper?.classList.add('d-none');
+      spotifySearchWrapper?.classList.toggle('d-none', val !== 'music');
       if (val === 'quote') {
         labelContent.textContent = 'Quote Text Body';
         labelCaption.textContent = 'Quote Author / Originator';
         extraCaptionWrap.classList.remove('d-none');
+      } else if (val === 'music') {
+        labelContent.textContent = 'Selected Spotify Track Link';
+        contentTextarea.placeholder = 'Search above or paste https://open.spotify.com/track/...';
+        labelCaption.textContent = 'Why This Song Belongs To This Vision';
+        extraCaptionWrap.classList.remove('d-none');
       } else if (val === 'note') {
         labelContent.textContent = 'Checklist Steps (One bullet per line)';
+        contentTextarea.placeholder = 'One step per line, e.g. [ ] Book flights';
         extraCaptionWrap.classList.add('d-none');
       } else {
         labelContent.textContent = 'Plain Memo Paragraph';
+        contentTextarea.placeholder = 'Write the memo that anchors this card...';
         extraCaptionWrap.classList.add('d-none');
       }
     }
@@ -1257,6 +1308,10 @@ function setupItemForm() {
   const previewImg = document.getElementById('item-image-preview');
   const removeImgBtn = document.getElementById('btn-remove-uploaded-image');
   const contentTextarea = document.getElementById('item-field-content');
+  const spotifySearchQuery = document.getElementById('item-spotify-search-query');
+  const spotifySearchBtn = document.getElementById('btn-search-spotify-track');
+  const spotifySearchStatus = document.getElementById('item-spotify-search-status');
+  const spotifySearchResults = document.getElementById('item-spotify-search-results');
   const imageSourceMode = document.getElementById('item-image-source-mode');
   const localUploadWrapper = document.getElementById('item-image-local-upload-wrapper');
   const pinterestWrapper = document.getElementById('item-image-pinterest-wrapper');
@@ -1353,6 +1408,95 @@ function setupItemForm() {
     }
   }
 
+  function resetSpotifySearchResults(message = 'Pick a track and Aura will save it as a board soundtrack card.') {
+    if (spotifySearchStatus) {
+      spotifySearchStatus.textContent = message;
+    }
+    if (spotifySearchResults) {
+      spotifySearchResults.innerHTML = '';
+    }
+  }
+
+  function renderSpotifySearchResults(tracks) {
+    if (!spotifySearchResults) return;
+    spotifySearchResults.innerHTML = '';
+
+    if (!tracks.length) {
+      resetSpotifySearchResults('No Spotify tracks found. Try another title, artist, or vibe keyword.');
+      return;
+    }
+
+    if (spotifySearchStatus) {
+      spotifySearchStatus.textContent = `${tracks.length} Spotify track${tracks.length === 1 ? '' : 's'} found. Choose the one that matches this vision.`;
+    }
+
+    tracks.forEach(track => {
+      const id = getSpotifyTrackField(track, 'id');
+      const name = getSpotifyTrackField(track, 'name');
+      const artist = getSpotifyTrackField(track, 'artist');
+      const album = getSpotifyTrackField(track, 'album');
+      const imageUrl = getSpotifyTrackField(track, 'imageUrl');
+      const spotifyUrl = getSpotifyTrackField(track, 'spotifyUrl');
+      if (!id || !name || !spotifyUrl) return;
+
+      const result = document.createElement('button');
+      result.type = 'button';
+      result.className = 'w-full text-left p-2 rounded-xl border border-[#C8B6FF]/35 bg-white/70 hover:bg-white transition-colors d-flex align-items-center gap-2';
+      result.innerHTML = `
+        <div class="w-11 h-11 rounded-lg bg-[#C8B6FF]/25 overflow-hidden flex-shrink-0 d-flex align-items-center justify-content-center">
+          ${imageUrl
+            ? `<img src="${escapeHtml(imageUrl)}" alt="" class="w-full h-full object-cover" />`
+            : '<i data-lucide="music" class="w-5 h-5 text-[#9F86C0]"></i>'}
+        </div>
+        <div class="min-w-0 flex-1">
+          <p class="mb-0 text-xs font-bold text-[#5E548E] truncate">${escapeHtml(name)}</p>
+          <p class="mb-0 text-[10px] text-[#9F86C0] truncate">${escapeHtml(artist || 'Unknown artist')}</p>
+          ${album ? `<p class="mb-0 text-[9px] text-[#9F86C0]/75 truncate">${escapeHtml(album)}</p>` : ''}
+        </div>
+        <span class="text-[9px] font-bold text-[#7C3AED] flex-shrink-0">Use</span>
+      `;
+      result.addEventListener('click', () => {
+        document.getElementById('item-field-title').value = name;
+        contentTextarea.value = getCanonicalSpotifyTrackUrl(spotifyUrl) || spotifyUrl;
+        document.getElementById('item-field-caption').value = artist || '';
+        if (spotifySearchStatus) {
+          spotifySearchStatus.textContent = `Selected: ${name}${artist ? ` by ${artist}` : ''}.`;
+        }
+        showSyncBanner('Spotify track selected for this vision card.', false);
+      });
+      spotifySearchResults.appendChild(result);
+    });
+
+    lucide.createIcons();
+  }
+
+  async function searchSpotifyTracks() {
+    const query = spotifySearchQuery?.value?.trim() || '';
+    if (query.length < 2) {
+      resetSpotifySearchResults('Search for at least 2 characters.');
+      spotifySearchQuery?.focus();
+      return;
+    }
+
+    if (spotifySearchBtn) spotifySearchBtn.disabled = true;
+    if (spotifySearchStatus) spotifySearchStatus.textContent = 'Searching Spotify...';
+
+    try {
+      const res = await fetchWithCredentials(`/api/spotify/search?q=${encodeURIComponent(query)}`);
+      const data = await parseJsonResponse(res, 'Spotify search failed.');
+      if (!res.ok) {
+        throw new Error(data?.error || 'Spotify search failed.');
+      }
+
+      renderSpotifySearchResults(data?.tracks || data?.Tracks || []);
+    } catch (err) {
+      resetSpotifySearchResults(err.message || 'Spotify search failed. Check your Spotify API settings.');
+      showSyncBanner(err.message || 'Spotify search failed. Check your Spotify API settings.', true);
+    } finally {
+      if (spotifySearchBtn) spotifySearchBtn.disabled = false;
+    }
+  }
+
   const selectCurrentCustomColor = () => {
     setCustomColorSelection(customColorText?.value || customColorInput?.value || '#C8B6FF');
   };
@@ -1418,6 +1562,14 @@ function setupItemForm() {
   contentTextarea?.addEventListener('input', () => {
     if (typeSelect.value !== 'image') return;
     updateImagePreviewFromContent();
+  });
+
+  spotifySearchBtn?.addEventListener('click', searchSpotifyTracks);
+  spotifySearchQuery?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      searchSpotifyTracks();
+    }
   });
 
   if (fileInput) {
@@ -1532,6 +1684,8 @@ function setupItemForm() {
     document.getElementById('item-field-id').value = '';
     if (imageSourceMode) imageSourceMode.value = 'keyword';
     if (pinterestUrlInput) pinterestUrlInput.value = '';
+    if (spotifySearchQuery) spotifySearchQuery.value = '';
+    resetSpotifySearchResults();
     resetCustomColorSelection();
     if (pendingCustomCardColor) {
       setCustomColorSelection(pendingCustomCardColor);
@@ -1584,6 +1738,15 @@ function setupItemForm() {
           return;
         }
         content = await anchorImageContentIfNeeded(content);
+        document.getElementById('item-field-content').value = content;
+      } else if (type === 'music') {
+        const spotifyUrl = getCanonicalSpotifyTrackUrl(content);
+        if (!spotifyUrl) {
+          showSyncBanner('Paste a valid Spotify track link, such as https://open.spotify.com/track/...', true);
+          document.getElementById('item-field-content').focus();
+          return;
+        }
+        content = spotifyUrl;
         document.getElementById('item-field-content').value = content;
       }
     } finally {
@@ -1667,8 +1830,8 @@ function setupItemForm() {
         zIndex: finalZIndex,
         x: Math.round(15 + Math.random() * 45),
         y: Math.round(20 + Math.random() * 35),
-        width: 25,
-        height: 22,
+        width: type === 'music' ? 34 : 25,
+        height: type === 'music' ? 38 : 22,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       };
