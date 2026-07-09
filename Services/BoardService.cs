@@ -54,7 +54,7 @@ namespace DigitalVisionBoard.Services
         public string NormalizeBoardItemType(string? type)
         {
             var normalized = (type ?? "").Trim().ToLowerInvariant();
-            return normalized is "quote" or "note" or "image" or "text" ? normalized : "note";
+            return normalized is "quote" or "note" or "image" or "text" or "music" ? normalized : "note";
         }
 
         public bool HasBoardSettingsChanges(UpdateBoardRequest request)

@@ -477,7 +477,7 @@ namespace DigitalVisionBoard.Controllers
         {
             return !string.IsNullOrWhiteSpace(item.Id) &&
                 item.Id.Length <= 120 &&
-                item.Type is "quote" or "note" or "image" or "text" &&
+                item.Type is "quote" or "note" or "image" or "text" or "music" &&
                 !string.IsNullOrWhiteSpace(item.Title) &&
                 item.Title.Length <= 120 &&
                 (item.Caption == null || item.Caption.Length <= 500) &&

@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="en">
   <head>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>aura.board • Creative Vision Studio</title>
@@ -623,6 +624,15 @@
         white-space: nowrap;
       }
 
+      #studio-toolbar > div:last-child {
+        justify-content: flex-end;
+      }
+
+      #studio-toolbar > div:last-child button {
+        align-items: center;
+        justify-content: center;
+      }
+
       #studio-ai-recommender-btn {
         display: inline-flex !important;
         align-items: center;
@@ -650,6 +660,38 @@
 
       #gallery-results-box select {
         min-width: 12rem;
+      }
+
+      @media (max-width: 1180px) {
+        #studio-toolbar {
+          align-items: stretch !important;
+          flex-direction: column !important;
+        }
+
+        #studio-toolbar > div {
+          width: 100%;
+        }
+
+        #studio-toolbar > div:first-child {
+          min-width: 0;
+        }
+
+        #studio-toolbar > div:last-child {
+          display: grid !important;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 0.6rem !important;
+        }
+
+        #studio-toolbar > div:last-child button {
+          min-width: 0;
+          padding-inline: 0.75rem !important;
+        }
+      }
+
+      @media (max-width: 900px) {
+        #studio-toolbar > div:last-child {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
       }
 
       @media (prefers-reduced-motion: reduce) {
@@ -961,8 +1003,8 @@
         }
       }
     </style>
-    <script type="module" crossorigin src="/assets/index-9SKYAYaH.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-DcLEpIYF.css">
+    <script type="module" crossorigin src="/assets/index-D4zLK9kO.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-BV4UCzZR.css">
   </head>
   <body class="font-sans text-[#5E548E] dark:text-[#FFF] relative min-h-screen">
 
@@ -1683,6 +1725,7 @@
                   <option value="quote">💬 Inspirational Quote</option>
                   <option value="image">🖼️ Image Keyword or URL</option>
                   <option value="text">📄 Core Memo Paragraph</option>
+                  <option value="music">🎵 Spotify Soundtrack</option>
                 </select>
               </div>
 
@@ -1719,14 +1762,25 @@
                 </div>
               </div>
 
+              <!-- Spotify Search Section (visible only when type is music) -->
+              <div id="item-spotify-search-wrapper" class="d-none p-3 rounded-2xl bg-[#F8F7FF] dark:bg-[#1E1B2E] border border-[#C8B6FF]/20 space-y-2 mt-2">
+                <label class="form-label font-bold text-[#5E548E]/80 font-mono text-[10px] uppercase mb-1">Search Spotify</label>
+                <div class="d-flex gap-2">
+                  <input type="search" id="item-spotify-search-query" class="form-control rounded-xl border-[#C8B6FF]/35 bg-white/50 text-xs py-1.5 text-[#5E548E]" placeholder="Search a song, artist, or vibe..." />
+                  <button type="button" id="btn-search-spotify-track" class="px-3 py-1.5 rounded-xl bg-[#9F86C0] text-white text-[10px] font-bold hover:bg-[#7C3AED] transition-colors">Search</button>
+                </div>
+                <p id="item-spotify-search-status" class="text-[10px] text-[#9F86C0] mb-0 leading-relaxed">Pick a track and Aura will save it as a board soundtrack card.</p>
+                <div id="item-spotify-search-results" class="space-y-2 max-h-52 overflow-y-auto pr-1"></div>
+              </div>
+
               <div class="mt-2">
                 <label class="form-label font-bold text-[#5E548E]/80 font-mono text-[10px] uppercase" id="item-label-content">Card Content / Image Keyword</label>
-                <textarea id="item-field-content" class="form-control rounded-xl text-xs border-[#C8B6FF]/45 text-[#5E548E]" rows="3" placeholder="Write text details, image keywords, or a direct image URL" required></textarea>
+                <textarea id="item-field-content" class="form-control rounded-xl text-xs border-[#C8B6FF]/45 text-[#5E548E]" rows="3" placeholder="Write text details, image keywords, a Spotify track link, or a direct image URL" required></textarea>
               </div>
 
               <!-- Extra caption/author if image/quote -->
               <div id="item-extra-caption-wrapper">
-                <label class="form-label font-bold text-[#5E548E]/80 font-mono text-[10px] uppercase" id="item-label-caption">Quote Author / Image Caption</label>
+                <label class="form-label font-bold text-[#5E548E]/80 font-mono text-[10px] uppercase" id="item-label-caption">Quote Author / Image Caption / Song Meaning</label>
                 <input type="text" id="item-field-caption" class="form-control rounded-xl border-[#C8B6FF]/45 py-2 text-xs" placeholder="E.g. Steve Jobs / Sunset peak view" />
               </div>
 
@@ -1808,12 +1862,12 @@
               
               <div>
                 <label class="form-label font-bold text-[#5E548E]/80">Canvas Title</label>
-                <input type="text" id="board-field-title" class="form-control rounded-xl border-[#C8B6FF]/35 py-2 text-xs font-semibold" placeholder="e.g. My Creative Autumn Loft Studio 🪐" required />
+                <input type="text" id="board-field-title" class="form-control rounded-xl border-[#C8B6FF]/35 py-2 text-xs font-semibold" placeholder="e.g. My Creative Autumn Loft Studio 🪐" maxlength="120" required />
               </div>
 
               <div>
                 <label class="form-label font-bold text-[#5E548E]/80">Aspirations/Theme Description</label>
-                <textarea id="board-field-desc" class="form-control rounded-xl text-xs border-[#C8B6FF]/35" rows="2" placeholder="Write overall themes or category descriptions we can feed into localized AI advice models..." required></textarea>
+                <textarea id="board-field-desc" class="form-control rounded-xl text-xs border-[#C8B6FF]/35" rows="2" maxlength="500" placeholder="Write overall themes or category descriptions we can feed into localized AI advice models..." required></textarea>
               </div>
 
               <div>

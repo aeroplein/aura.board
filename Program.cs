@@ -108,6 +108,7 @@ builder.Services.PostConfigure<MailSettings>(mail =>
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<BoardService>();
 builder.Services.AddScoped<ImageStorageService>();
+builder.Services.AddScoped<SpotifyService>();
 builder.Services.AddScoped<IAdvancedEmailValidator, AdvancedEmailValidator>();
 builder.Services.AddScoped<IEmailService, MailKitEmailService>();
 builder.Services.AddScoped<IInviteEmailService, InviteEmailService>();
