@@ -14,6 +14,7 @@ var checks = new List<(string Name, Action Check)>
     ("ImageStorageService rejects invalid upload payloads before database writes", CheckImageUploadValidation),
     ("Strict email validation rejects malformed domains", CheckStrictEmailValidation),
     ("Advanced email validation keeps MX checks configurable and blocks disposable domains", CheckAdvancedEmailValidationPolicy),
+    ("Registration requires email verification before login", CheckEmailVerificationRegistrationContract),
     ("Profile identity normalizes usernames and carries avatar fields", CheckProfileIdentityContracts),
     ("SyncResponse exposes diagnostics without breaking board payloads", CheckSyncResponseDiagnostics)
 };
@@ -194,6 +195,18 @@ static void CheckProfileIdentityContracts()
 
     var request = new RegisterRequest("person@example.com", "portfolio-pass-123", "Person Example", "@person.example");
     Assert(request.Username == "@person.example", "Registration should accept the selected username.");
+}
+
+static void CheckEmailVerificationRegistrationContract()
+{
+    var response = new RegistrationResponse(
+        "person@example.com",
+        true,
+        "Account created. Check your email and verify your address before signing in.");
+
+    Assert(response.VerificationEmailSent, "Registration should report that a verification email was sent.");
+    Assert(response.Message.Contains("verify", StringComparison.OrdinalIgnoreCase), "Registration response should tell users to verify email before login.");
+    Assert(new EmailVerificationRequiredException().Message.Contains("verify", StringComparison.OrdinalIgnoreCase), "Unverified login should have a clear verification error.");
 }
 
 static void CheckSyncResponseDiagnostics()

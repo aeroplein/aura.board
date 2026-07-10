@@ -152,8 +152,10 @@ export function setupAuthForm({
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     alert.classList.add('d-none');
+    alert.classList.remove('auth-alert-success');
     const submitBtn = document.getElementById('btn-auth-submit');
     const originalSubmitText = submitBtn?.textContent || '';
+    let submitTextAfterSuccess = null;
     if (submitBtn) {
       submitBtn.disabled = true;
       submitBtn.textContent = isRegisterMode ? 'Creating workspace...' : 'Signing in...';
@@ -182,6 +184,18 @@ export function setupAuthForm({
         throw new Error(data?.error || 'Identity verification failed.');
       }
 
+      if (isRegisterMode) {
+        alert.textContent = data?.message || 'Account created. Check your email before signing in.';
+        alert.classList.add('auth-alert-success');
+        alert.classList.remove('d-none');
+        toggleAuthMode(false);
+        isRegisterMode = false;
+        submitTextAfterSuccess = 'Unlock Canvas Gate';
+        form.reset();
+        document.getElementById('auth-input-email').value = data?.email || email;
+        return;
+      }
+
       setCurrentUser(data.user);
 
       authModalObj.hide();
@@ -190,12 +204,13 @@ export function setupAuthForm({
       showTab('home');
 
     } catch (err) {
+      alert.classList.remove('auth-alert-success');
       alert.textContent = getFriendlyAuthError(err.message);
       alert.classList.remove('d-none');
     } finally {
       if (submitBtn) {
         submitBtn.disabled = false;
-        submitBtn.textContent = originalSubmitText;
+        submitBtn.textContent = submitTextAfterSuccess || originalSubmitText;
       }
     }
   });
@@ -250,6 +265,10 @@ function getFriendlyAuthError(message) {
 
   if (lowerMessage.includes('username') && lowerMessage.includes('taken')) {
     return 'That username is already taken. Try a small variation.';
+  }
+
+  if (lowerMessage.includes('verify your email') || lowerMessage.includes('email verification')) {
+    return message;
   }
 
   return message;

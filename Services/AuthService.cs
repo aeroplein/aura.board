@@ -22,6 +22,22 @@ namespace DigitalVisionBoard.Services
         Expired
     }
 
+    public class EmailVerificationRequiredException : InvalidOperationException
+    {
+        public EmailVerificationRequiredException()
+            : base("Please verify your email address before signing in.")
+        {
+        }
+    }
+
+    public class EmailVerificationDeliveryException : InvalidOperationException
+    {
+        public EmailVerificationDeliveryException(string message, Exception? innerException = null)
+            : base(message, innerException)
+        {
+        }
+    }
+
     public class AuthService
     {
         public const string AuthCookieName = "vision_board_auth";
@@ -57,7 +73,7 @@ namespace DigitalVisionBoard.Services
             _logger = logger;
         }
 
-        public async Task<AuthResponse> RegisterAsync(RegisterRequest request)
+        public async Task<RegistrationResponse> RegisterAsync(RegisterRequest request)
         {
             var email = NormalizeEmail(request.Email);
             var username = NormalizeUsername(request.Username);
@@ -90,15 +106,21 @@ namespace DigitalVisionBoard.Services
                 EmailVerificationExpires = DateTime.UtcNow.Add(EmailVerificationTokenLifetime)
             };
 
+            await using var transaction = await _context.Database.BeginTransactionAsync();
+
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
 
             _context.Boards.Add(CreateDefaultUserBoard(user.Id));
             await _context.SaveChangesAsync();
 
-            await SendVerificationEmailIfConfiguredAsync(user);
+            await SendVerificationEmailAsync(user);
+            await transaction.CommitAsync();
 
-            return CreateAuthResponse(user);
+            return new RegistrationResponse(
+                user.Email,
+                true,
+                "Account created. Check your email and verify your address before signing in.");
         }
 
         public async Task<AuthResponse?> LoginAsync(LoginRequest request)
@@ -113,6 +135,11 @@ namespace DigitalVisionBoard.Services
             if (user == null || !VerifyPassword(request.Password, user, out var needsRehash))
             {
                 return null;
+            }
+
+            if (!user.IsEmailVerified)
+            {
+                throw new EmailVerificationRequiredException();
             }
 
             if (needsRehash)
@@ -276,7 +303,7 @@ namespace DigitalVisionBoard.Services
             return (salt, $"pbkdf2_sha512${CurrentIterations}${salt}${hash}");
         }
 
-        private async Task SendVerificationEmailIfConfiguredAsync(User user)
+        private async Task SendVerificationEmailAsync(User user)
         {
             if (string.IsNullOrWhiteSpace(user.EmailVerificationToken))
             {
@@ -301,10 +328,16 @@ namespace DigitalVisionBoard.Services
             catch (InvalidOperationException ex)
             {
                 _logger.LogWarning(ex, "Email verification message was not sent because SMTP settings are incomplete.");
+                throw new EmailVerificationDeliveryException(
+                    "Email verification could not be sent because SMTP settings are not configured.",
+                    ex);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Email verification message failed for user {UserId}", user.Id);
+                throw new EmailVerificationDeliveryException(
+                    "Email verification could not be sent. Please try again later.",
+                    ex);
             }
         }
 
