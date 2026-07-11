@@ -178,10 +178,12 @@ export function setupAuthForm({
 
       const data = await parseJsonResponse(
         res,
-        'The API server is not responding. Start the backend, then try signing in again.'
+        isRegisterMode
+          ? 'We could not create your account right now. Please try again in a moment.'
+          : 'We could not sign you in right now. Please try again in a moment.'
       );
       if (!res.ok) {
-        throw new Error(data?.error || 'Identity verification failed.');
+        throw new Error(getApiErrorMessage(data));
       }
 
       if (isRegisterMode) {
@@ -267,9 +269,39 @@ function getFriendlyAuthError(message) {
     return 'That username is already taken. Try a small variation.';
   }
 
+  if (lowerMessage.includes('account with this email already exists')) {
+    return 'An account already exists with this email address. Sign in instead.';
+  }
+
+  if (lowerMessage.includes('password') && lowerMessage.includes('minimum length')) {
+    return 'Aura Passkey must be at least 8 characters.';
+  }
+
+  if (lowerMessage.includes('password') && lowerMessage.includes('maximum length')) {
+    return 'Aura Passkey cannot be longer than 128 characters.';
+  }
+
   if (lowerMessage.includes('verify your email') || lowerMessage.includes('email verification')) {
     return message;
   }
 
   return message;
+}
+
+function getApiErrorMessage(data) {
+  if (data?.error) return data.error;
+  if (data?.message) return data.message;
+
+  const errors = data?.errors || {};
+  const preferredFields = ['Email', 'Username', 'Password', 'Name'];
+  for (const field of preferredFields) {
+    const fieldMessages = errors[field] || errors[field.toLowerCase()];
+    if (Array.isArray(fieldMessages) && fieldMessages[0]) return fieldMessages[0];
+  }
+
+  const validationMessages = Object.values(errors)
+    .flat()
+    .filter(Boolean);
+
+  return validationMessages[0] || 'Please check your details and try again.';
 }
