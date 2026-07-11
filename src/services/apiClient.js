@@ -8,6 +8,7 @@ export function fetchWithCredentials(url, options = {}) {
 export async function parseJsonResponse(response, fallbackMessage = 'Request failed. Please try again.') {
   const contentType = response.headers.get('content-type') || '';
   const text = await response.text();
+  const isJson = contentType.includes('application/json') || contentType.includes('+json');
 
   if (!text.trim()) {
     if (!response.ok) {
@@ -16,7 +17,7 @@ export async function parseJsonResponse(response, fallbackMessage = 'Request fai
     return null;
   }
 
-  if (!contentType.includes('application/json')) {
+  if (!isJson) {
     if (!response.ok) {
       throw new Error(fallbackMessage);
     }

@@ -128,10 +128,10 @@ The app uses real password hashing and HttpOnly cookie sessions, but it does not
 
 ## API Notes
 
-- `POST /api/auth/register` returns `201 Created` when a user is registered.
+- `POST /api/auth/register` creates an unverified user, sends a verification email, and returns `201 Created` without setting an auth cookie.
 - Duplicate registration emails return `409 Conflict`.
 - `GET /api/auth/verify-email?email={email}&token={token}` verifies an email verification token.
-- `POST /api/auth/login` sets the HttpOnly JWT auth cookie.
+- `POST /api/auth/login` sets the HttpOnly JWT auth cookie only after the account email has been verified.
 - `GET /api/auth/session` returns the current authenticated user from the cookie.
 - `POST /api/auth/logout` clears the auth cookie.
 - `POST /api/boards` returns `201 Created` and includes a `Location` header for the new board.
@@ -201,7 +201,7 @@ Copy `.env.example` to `.env` for local development values. `.env` is ignored by
 - `GEMINI_API_KEY`: Optional. Enables Gemini-generated board recommendations.
 - `APP_URL`: Optional. Used for invite links and as a fallback base URL for verification links.
 - `APP_BASE_URL`: Optional. Used for email verification links when it differs from `APP_URL`.
-- `SMTP_HOST`, `SMTP_PORT`, `SMTP_USE_SSL`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_FROM`: Optional invite and verification email settings.
+- `SMTP_HOST`, `SMTP_PORT`, `SMTP_USE_SSL`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_FROM`: Required for first-time account verification emails; also used for optional collaborator invite emails.
 
 `appsettings.json` includes local-development placeholders so the project can run for coursework. Replace them outside local development and keep real secrets in environment variables or an untracked `.env` file.
 

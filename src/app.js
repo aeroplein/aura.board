@@ -2000,6 +2000,10 @@ function getAuthValidationState() {
     return { input: nameInput, message: 'Add your name to create the workspace.' };
   }
 
+  if (isRegisterMode && nameInput.value.trim().length < 2) {
+    return { input: nameInput, message: 'Your name must be at least 2 characters.' };
+  }
+
   const username = String(usernameInput?.value || '').trim().replace(/^@+/, '');
   if (isRegisterMode && !username) {
     return { input: usernameInput, message: 'Choose a username for your workspace badge.' };
@@ -2019,6 +2023,14 @@ function getAuthValidationState() {
 
   if (!passwordInput?.value) {
     return { input: passwordInput, message: 'Enter your Aura Passkey to continue.' };
+  }
+
+  if (isRegisterMode && passwordInput.value.length < 8) {
+    return { input: passwordInput, message: 'Aura Passkey must be at least 8 characters.' };
+  }
+
+  if (passwordInput.value.length > 128) {
+    return { input: passwordInput, message: 'Aura Passkey cannot be longer than 128 characters.' };
   }
 
   return null;

@@ -33,8 +33,12 @@ namespace DigitalVisionBoard.Controllers
             try
             {
                 var response = await _authService.RegisterAsync(request);
-                SetAuthCookie(response);
-                return Created("/api/auth/login", response);
+                return Created("/api/auth/verify-email", response);
+            }
+            catch (EmailVerificationDeliveryException ex)
+            {
+                _logger.LogWarning(ex, "Registration could not send email verification.");
+                return StatusCode(StatusCodes.Status503ServiceUnavailable, new { error = ex.Message });
             }
             catch (InvalidOperationException ex)
             {
@@ -67,6 +71,10 @@ namespace DigitalVisionBoard.Controllers
 
                 SetAuthCookie(response);
                 return Ok(response);
+            }
+            catch (EmailVerificationRequiredException ex)
+            {
+                return StatusCode(StatusCodes.Status403Forbidden, new { error = ex.Message });
             }
             catch (Exception ex)
             {

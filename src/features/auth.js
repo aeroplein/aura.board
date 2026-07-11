@@ -152,8 +152,10 @@ export function setupAuthForm({
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     alert.classList.add('d-none');
+    alert.classList.remove('auth-alert-success');
     const submitBtn = document.getElementById('btn-auth-submit');
     const originalSubmitText = submitBtn?.textContent || '';
+    let submitTextAfterSuccess = null;
     if (submitBtn) {
       submitBtn.disabled = true;
       submitBtn.textContent = isRegisterMode ? 'Creating workspace...' : 'Signing in...';
@@ -176,10 +178,24 @@ export function setupAuthForm({
 
       const data = await parseJsonResponse(
         res,
-        'The API server is not responding. Start the backend, then try signing in again.'
+        isRegisterMode
+          ? 'We could not create your account right now. Please try again in a moment.'
+          : 'We could not sign you in right now. Please try again in a moment.'
       );
       if (!res.ok) {
-        throw new Error(data?.error || 'Identity verification failed.');
+        throw new Error(getApiErrorMessage(data));
+      }
+
+      if (isRegisterMode) {
+        alert.textContent = data?.message || 'Account created. Check your email before signing in.';
+        alert.classList.add('auth-alert-success');
+        alert.classList.remove('d-none');
+        toggleAuthMode(false);
+        isRegisterMode = false;
+        submitTextAfterSuccess = 'Unlock Canvas Gate';
+        form.reset();
+        document.getElementById('auth-input-email').value = data?.email || email;
+        return;
       }
 
       setCurrentUser(data.user);
@@ -190,12 +206,13 @@ export function setupAuthForm({
       showTab('home');
 
     } catch (err) {
+      alert.classList.remove('auth-alert-success');
       alert.textContent = getFriendlyAuthError(err.message);
       alert.classList.remove('d-none');
     } finally {
       if (submitBtn) {
         submitBtn.disabled = false;
-        submitBtn.textContent = originalSubmitText;
+        submitBtn.textContent = submitTextAfterSuccess || originalSubmitText;
       }
     }
   });
@@ -252,5 +269,39 @@ function getFriendlyAuthError(message) {
     return 'That username is already taken. Try a small variation.';
   }
 
+  if (lowerMessage.includes('account with this email already exists')) {
+    return 'An account already exists with this email address. Sign in instead.';
+  }
+
+  if (lowerMessage.includes('password') && lowerMessage.includes('minimum length')) {
+    return 'Aura Passkey must be at least 8 characters.';
+  }
+
+  if (lowerMessage.includes('password') && lowerMessage.includes('maximum length')) {
+    return 'Aura Passkey cannot be longer than 128 characters.';
+  }
+
+  if (lowerMessage.includes('verify your email') || lowerMessage.includes('email verification')) {
+    return message;
+  }
+
   return message;
+}
+
+function getApiErrorMessage(data) {
+  if (data?.error) return data.error;
+  if (data?.message) return data.message;
+
+  const errors = data?.errors || {};
+  const preferredFields = ['Email', 'Username', 'Password', 'Name'];
+  for (const field of preferredFields) {
+    const fieldMessages = errors[field] || errors[field.toLowerCase()];
+    if (Array.isArray(fieldMessages) && fieldMessages[0]) return fieldMessages[0];
+  }
+
+  const validationMessages = Object.values(errors)
+    .flat()
+    .filter(Boolean);
+
+  return validationMessages[0] || 'Please check your details and try again.';
 }

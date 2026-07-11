@@ -184,6 +184,12 @@ body,
   line-height: 1.45;
 }
 
+.auth-alert-success {
+  background: rgba(245, 255, 250, 0.94);
+  border-color: rgba(141, 214, 173, 0.72);
+  color: #31664a;
+}
+
 #auth-form .auth-field-invalid {
   border-color: rgba(220, 83, 125, 0.75) !important;
   box-shadow: 0 0 0 3px rgba(255, 214, 231, 0.72) !important;
