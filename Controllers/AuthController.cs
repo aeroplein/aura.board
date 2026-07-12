@@ -226,7 +226,7 @@ namespace DigitalVisionBoard.Controllers
         private static UserResponse ToUserResponse(User user)
         {
             var preferencesDto = new UserPreferencesDto(user.DarkMode, user.NotificationsEnabled, user.HighContrast);
-            return new UserResponse(user.Id, user.Email, user.Name, user.Username, user.AvatarUrl, preferencesDto);
+            return new UserResponse(user.Id, user.Email, user.Name, user.Username, user.AvatarUrl, preferencesDto, user.IsAdmin);
         }
 
         private void SetAuthCookie(AuthResponse response)

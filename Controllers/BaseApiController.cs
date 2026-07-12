@@ -24,5 +24,18 @@ namespace DigitalVisionBoard.Controllers
             var token = Request.Cookies[AuthService.AuthCookieName];
             return await _authService.GetUserFromJwtAsync(token);
         }
+
+        protected async Task<IActionResult?> RequireCurrentAdminAsync()
+        {
+            var user = await GetCurrentUserAsync();
+            if (user == null)
+            {
+                return Unauthorized(new { error = "Sign in to access admin tools." });
+            }
+
+            return user.IsAdmin
+                ? null
+                : StatusCode(StatusCodes.Status403Forbidden, new { error = "Admin access is required." });
+        }
     }
 }

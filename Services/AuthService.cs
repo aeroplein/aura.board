@@ -207,7 +207,7 @@ namespace DigitalVisionBoard.Services
             var expiresAt = DateTime.UtcNow.Add(TokenLifetime);
             var token = CreateJwt(user, expiresAt);
             var preferencesDto = new UserPreferencesDto(user.DarkMode, user.NotificationsEnabled, user.HighContrast);
-            var userResponse = new UserResponse(user.Id, user.Email, user.Name, user.Username, user.AvatarUrl, preferencesDto);
+            var userResponse = new UserResponse(user.Id, user.Email, user.Name, user.Username, user.AvatarUrl, preferencesDto, user.IsAdmin);
 
             return new AuthResponse(userResponse, expiresAt, token);
         }

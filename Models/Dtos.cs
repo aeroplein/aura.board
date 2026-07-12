@@ -19,7 +19,7 @@ namespace DigitalVisionBoard.Models
     );
 
     public record UserPreferencesDto(bool DarkMode, bool NotificationsEnabled, bool HighContrast);
-    public record UserResponse(Guid Id, string Email, string Name, string? Username, string? AvatarUrl, UserPreferencesDto Preferences);
+    public record UserResponse(Guid Id, string Email, string Name, string? Username, string? AvatarUrl, UserPreferencesDto Preferences, bool IsAdmin);
     public record RegistrationResponse(string Email, bool VerificationEmailSent, string Message);
     public record UpdateProfileRequest(
         [param: Required, StringLength(80, MinimumLength = 2)] string Name,
