@@ -104,6 +104,12 @@ builder.Services.PostConfigure<MailSettings>(mail =>
     {
         mail.UseSsl = useSsl;
     }
+
+    var timeoutSecondsText = FirstConfigured(null, "SMTP_TIMEOUT_SECONDS");
+    if (int.TryParse(timeoutSecondsText, out var timeoutSeconds) && timeoutSeconds is >= 1 and <= 120)
+    {
+        mail.TimeoutSeconds = timeoutSeconds;
+    }
 });
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<BoardService>();

@@ -8,7 +8,7 @@ using DigitalVisionBoard.Services;
 namespace DigitalVisionBoard.Controllers
 {
     [ApiController]
-    public abstract class BaseApiController : ControllerBase
+    public abstract class BaseApiController : Controller
     {
         protected readonly AppDbContext _context;
         private readonly AuthService _authService;
