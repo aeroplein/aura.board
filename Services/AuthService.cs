@@ -325,16 +325,16 @@ namespace DigitalVisionBoard.Services
             {
                 await _emailService.SendEmailAsync(user.Email, subject, body);
             }
-            catch (InvalidOperationException ex)
+            catch (InvalidOperationException ex) when (ex.Message.StartsWith("MailSettings must include", StringComparison.Ordinal))
             {
-                _logger.LogWarning(ex, "Email verification message was not sent because SMTP settings are incomplete.");
+                _logger.LogWarning("Email verification message was not sent because SMTP settings are incomplete.");
                 throw new EmailVerificationDeliveryException(
                     "Email verification could not be sent because SMTP settings are not configured.",
                     ex);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Email verification message failed for user {UserId}", user.Id);
+                _logger.LogError("Email verification message failed for user {UserId}; ExceptionType {ExceptionType}", user.Id, ex.GetType().Name);
                 throw new EmailVerificationDeliveryException(
                     "Email verification could not be sent. Please try again later.",
                     ex);

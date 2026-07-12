@@ -9,6 +9,7 @@ namespace DigitalVisionBoard.Models
         public string FromEmail { get; set; } = string.Empty;
         public string FromName { get; set; } = "Digital Vision Board";
         public bool UseSsl { get; set; } = true;
+        public int TimeoutSeconds { get; set; } = 20;
         public string AppBaseUrl { get; set; } = "http://localhost:5000";
     }
 }

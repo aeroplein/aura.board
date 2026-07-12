@@ -103,20 +103,61 @@ namespace DigitalVisionBoard.Controllers
                 var result = await _authService.VerifyEmailAsync(email, token);
                 return result switch
                 {
-                    EmailVerificationResult.Success => Ok(new { success = true, message = "Email verified successfully." }),
-                    EmailVerificationResult.AlreadyVerified => Conflict(new { error = "Email address is already verified." }),
-                    EmailVerificationResult.MissingParameters => BadRequest(new { error = "Email and token are required." }),
-                    EmailVerificationResult.Expired => BadRequest(new { error = "Email verification token has expired." }),
-                    EmailVerificationResult.InvalidToken => BadRequest(new { error = "Invalid email verification token." }),
-                    EmailVerificationResult.UserNotFound => NotFound(new { error = "User not found." }),
-                    _ => BadRequest(new { error = "Email verification failed." })
+                    EmailVerificationResult.Success => EmailVerificationPage(
+                        StatusCodes.Status200OK,
+                        "success",
+                        "Your email is verified",
+                        "Your Aura account is ready. Sign in to start creating your vision board."),
+                    EmailVerificationResult.AlreadyVerified => EmailVerificationPage(
+                        StatusCodes.Status409Conflict,
+                        "info",
+                        "This email is already verified",
+                        "You can sign in and continue creating your vision board."),
+                    EmailVerificationResult.MissingParameters => EmailVerificationPage(
+                        StatusCodes.Status400BadRequest,
+                        "error",
+                        "This verification link is incomplete",
+                        "Please use the complete link from your verification email."),
+                    EmailVerificationResult.Expired => EmailVerificationPage(
+                        StatusCodes.Status400BadRequest,
+                        "error",
+                        "This verification link has expired",
+                        "For your security, verification links expire after 24 hours. Please register again to receive a new one."),
+                    EmailVerificationResult.InvalidToken => EmailVerificationPage(
+                        StatusCodes.Status400BadRequest,
+                        "error",
+                        "This verification link is invalid",
+                        "Please use the latest verification email we sent you."),
+                    EmailVerificationResult.UserNotFound => EmailVerificationPage(
+                        StatusCodes.Status404NotFound,
+                        "error",
+                        "We couldn't find that account",
+                        "Please check that you opened the link from the correct verification email."),
+                    _ => EmailVerificationPage(
+                        StatusCodes.Status400BadRequest,
+                        "error",
+                        "Email verification failed",
+                        "Please try again using the link in your verification email.")
                 };
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Email verification failed.");
-                return StatusCode(StatusCodes.Status503ServiceUnavailable, new { error = "Email verification is temporarily unavailable." });
+                return EmailVerificationPage(
+                    StatusCodes.Status503ServiceUnavailable,
+                    "error",
+                    "Email verification is temporarily unavailable",
+                    "Please try again in a few minutes.");
             }
+        }
+
+        private ViewResult EmailVerificationPage(int statusCode, string state, string title, string message)
+        {
+            Response.StatusCode = statusCode;
+            ViewData["State"] = state;
+            ViewData["Title"] = title;
+            ViewData["Message"] = message;
+            return View("~/Views/Home/EmailVerification.cshtml");
         }
 
         [HttpPost("logout")]
