@@ -13,6 +13,22 @@
   --dash-line: rgba(200, 182, 255, 0.35);
 }
 
+/* Keep the dashboard as crisp as the site chrome: one radius, one border,
+   and no decorative tilt that can make edges look soft or misaligned. */
+#view-home .glass-card,
+#view-home .welcome-panel,
+#view-home .desk-search-strip,
+#view-home .board-preview-card,
+#view-home .desk-sidebar-card,
+#view-home .state-empty {
+  border-radius: 1rem;
+  border-color: var(--dash-line);
+}
+
+#view-home .glass-card::after {
+  opacity: 0.14;
+}
+
 /* Vertical rhythm between welcome + grid */
 #view-home > .welcome-panel {
   margin-bottom: var(--dash-gap-lg);
@@ -95,7 +111,6 @@
 
 /* Search strip */
 #view-home .desk-search-strip {
-  border-radius: 1rem 1.25rem 1.1rem 1.2rem;
   margin-bottom: var(--dash-gap);
 }
 
@@ -140,6 +155,7 @@
   overflow: visible;
   cursor: default;
   min-height: 10.5rem;
+  transform: none !important;
 }
 
 #view-home .board-preview-card::before {
@@ -155,20 +171,6 @@
   transform: rotate(-2deg);
   z-index: 2;
   pointer-events: none;
-}
-
-#view-home #boards-grid-list > .col-md-6:nth-child(3n + 1) .board-preview-card {
-  transform: rotate(-0.35deg);
-}
-
-#view-home #boards-grid-list > .col-md-6:nth-child(3n + 2) .board-preview-card {
-  transform: rotate(0.28deg);
-  padding-top: 1.3rem;
-}
-
-#view-home #boards-grid-list > .col-md-6:nth-child(3n) .board-preview-card {
-  transform: rotate(0.12deg);
-  padding-left: 1.2rem;
 }
 
 #view-home .board-preview-card:hover {
@@ -271,7 +273,7 @@
 }
 
 #view-home .desk-sidebar-card {
-  transform: rotate(0.3deg);
+  transform: none;
 }
 
 #view-home .desk-sidebar-card h4 {
@@ -286,13 +288,57 @@
 }
 
 #view-home .feed-note {
-  border-radius: 0.7rem 0.85rem 0.65rem 0.8rem;
+  border-radius: 0.75rem;
   transition: transform 0.16s ease, box-shadow 0.16s ease;
 }
 
 #view-home .feed-note:hover {
   transform: translateX(3px);
   box-shadow: 0 2px 8px rgba(94, 84, 142, 0.07);
+}
+
+/* Dashboard utilities use light palette classes; restore readable, distinct
+   surfaces when the app's explicit dark mode is active. */
+.dark #view-home {
+  --dash-ink: #eeeaff;
+  --dash-muted: #c8b6ff;
+  --dash-line: rgba(200, 182, 255, 0.32);
+}
+
+.dark #view-home .glass-card,
+.dark #view-home .welcome-panel {
+  background: rgba(30, 27, 46, 0.96) !important;
+  border-color: var(--dash-line);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.05) inset, 0 8px 20px rgba(0, 0, 0, 0.22);
+}
+
+.dark #view-home .glass-card::after {
+  opacity: 0.06;
+}
+
+.dark #view-home #board-search-input {
+  background: rgba(15, 14, 23, 0.74) !important;
+  border-color: rgba(200, 182, 255, 0.42) !important;
+  color: #f4f1ff;
+}
+
+.dark #view-home #board-search-input::placeholder,
+.dark #view-home .desk-sidebar-lead,
+.dark #view-home .board-card-desc,
+.dark #view-home .board-card-meta {
+  color: rgba(222, 215, 255, 0.72) !important;
+}
+
+.dark #view-home .desk-section-title,
+.dark #view-home .board-card-title,
+.dark #view-home .desk-sidebar-card h4,
+.dark #view-home .feed-note p {
+  color: #f4f1ff !important;
+}
+
+.dark #view-home .feed-note {
+  background: rgba(15, 14, 23, 0.64) !important;
+  border-color: rgba(200, 182, 255, 0.27) !important;
 }
 
 /* Responsive */
