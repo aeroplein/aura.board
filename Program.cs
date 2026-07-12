@@ -1,8 +1,10 @@
 using System;
 using System.IO;
+using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.EntityFrameworkCore;
@@ -66,6 +68,13 @@ builder.Services.AddCors(options =>
               .AllowAnyMethod()
               .AllowCredentials();
     });
+});
+
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddPolicy("auth", context => CreateFixedWindowLimiter(context, permitLimit: 10, window: TimeSpan.FromMinutes(1)));
+    options.AddPolicy("provider", context => CreateFixedWindowLimiter(context, permitLimit: 20, window: TimeSpan.FromMinutes(1)));
 });
 
 // Configure Database Connection
@@ -152,6 +161,7 @@ using (var scope = app.Services.CreateScope())
     {
         var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("Startup");
         logger.LogError(ex, "An error occurred while migrating or initializing the database.");
+        throw new InvalidOperationException("The application cannot start because database migrations failed.", ex);
     }
 }
 
@@ -174,6 +184,7 @@ app.UseStaticFiles(new StaticFileOptions
 });
 
 app.UseRouting();
+app.UseRateLimiter();
 
 app.MapControllers();
 
@@ -297,6 +308,20 @@ static string? FirstConfigured(string? currentValue, params string[] keys)
     }
 
     return null;
+}
+
+static RateLimitPartition<string> CreateFixedWindowLimiter(HttpContext context, int permitLimit, TimeSpan window)
+{
+    var clientKey = context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+    return RateLimitPartition.GetFixedWindowLimiter(
+        clientKey,
+        _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = permitLimit,
+            Window = window,
+            QueueLimit = 0,
+            AutoReplenishment = true
+        });
 }
 
 static string ConvertDatabaseUrlToNpgsqlConnectionString(string databaseUrl)

@@ -192,7 +192,7 @@ export function setupAuthForm({
         alert.classList.remove('d-none');
         toggleAuthMode(false);
         isRegisterMode = false;
-        submitTextAfterSuccess = 'Unlock Canvas Gate';
+        submitTextAfterSuccess = 'Sign in';
         form.reset();
         document.getElementById('auth-input-email').value = data?.email || email;
         return;
@@ -229,17 +229,17 @@ export function toggleAuthMode(regMode) {
   if (regMode) {
     nameGroup.classList.remove('d-none');
     usernameGroup?.classList.remove('d-none');
-    title.textContent = 'Curate in aura.board';
-    if (intro) intro.textContent = 'Choose the name and handle that will live on your creative workspace.';
-    toggleBtn.innerHTML = 'Already curating? <strong class="text-[#5E548E]">Sign In</strong>';
-    submitBtn.textContent = 'Assemble Workspace';
+    title.textContent = 'Create your Aura Board account';
+    if (intro) intro.textContent = 'Choose a name and handle for your profile.';
+    toggleBtn.innerHTML = 'Already have an account? <strong class="text-[#5E548E]">Sign in</strong>';
+    submitBtn.textContent = 'Create account';
   } else {
     nameGroup.classList.add('d-none');
     usernameGroup?.classList.add('d-none');
-    title.textContent = 'Welcome back to aura.';
-    if (intro) intro.textContent = 'Sign back into the studio that already knows your boards, theme, and profile.';
-    toggleBtn.innerHTML = 'New to the studio? <strong class="text-[#5E548E]">Sign Up</strong>';
-    submitBtn.textContent = 'Unlock Canvas Gate';
+    title.textContent = 'Welcome back to Aura Board';
+    if (intro) intro.textContent = 'Sign in to access your boards and profile.';
+    toggleBtn.innerHTML = 'New here? <strong class="text-[#5E548E]">Create an account</strong>';
+    submitBtn.textContent = 'Sign in';
   }
 }
 
@@ -274,11 +274,11 @@ function getFriendlyAuthError(message) {
   }
 
   if (lowerMessage.includes('password') && lowerMessage.includes('minimum length')) {
-    return 'Aura Passkey must be at least 8 characters.';
+    return 'Password must be at least 8 characters.';
   }
 
   if (lowerMessage.includes('password') && lowerMessage.includes('maximum length')) {
-    return 'Aura Passkey cannot be longer than 128 characters.';
+    return 'Password cannot be longer than 128 characters.';
   }
 
   if (lowerMessage.includes('verify your email') || lowerMessage.includes('email verification')) {

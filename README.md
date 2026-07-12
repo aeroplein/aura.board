@@ -1,8 +1,17 @@
-# Digital Vision Board
+# Aura Board
 
-Digital Vision Board is a student portfolio/course project for creating personal vision boards with movable notes, quotes, images, AI-assisted inspiration, and lightweight collaboration.
+Aura Board is a student full-stack project for creating personal vision boards. Users can arrange draggable notes, quotes, images, and Spotify tracks on a canvas, share boards with collaborators, and optionally generate ideas with Gemini.
 
-This project is intentionally small-scale. It is designed to look professional, maintainable, and credible for coursework without pretending to be enterprise production software.
+It is intentionally portfolio-scale rather than a production SaaS. The project focuses on a polished board-creation experience, secure server boundaries, and an honest explanation of its limits.
+
+**Live demo:** [digital-vision-board-o5r4.onrender.com](https://digital-vision-board-o5r4.onrender.com/)
+
+## Feature Tour
+
+- Create, edit, and share personal vision boards.
+- Arrange movable quote, note, text, image, and music cards on a canvas.
+- Use optional Gemini-assisted ideas and image prompts; local starter suggestions remain available without an API key.
+- Register with email verification and use HttpOnly cookie sessions.
 
 ## Tech Stack
 
@@ -213,20 +222,18 @@ Copy `.env.example` to `.env` for local development values. `.env` is ignored by
 - Upload image content
 - Ask for AI board recommendations and inspiration prompts
 - Send optional collaborator invite and email verification messages
-- View recent board activity
+- View lightweight board activity in the app
 
 ## Screenshots
 
-No final portfolio screenshots are included in this repository yet. Keep this placeholder section for coursework submission, then add real image references before publishing the project publicly as a portfolio piece.
-
-Recommended screenshots to add before portfolio publishing:
+Add only screenshots captured from this version of the app. Recommended portfolio views are:
 
 - Dashboard / board list
 - Vision board canvas
 - AI recommendations panel
 - Collaboration invite flow
 
-Only reference screenshot files here after they actually exist in the repository.
+Do not present a screenshot as a live feature if it uses sample or fallback data.
 
 ## Submission Packaging
 
@@ -250,7 +257,7 @@ npm run test:professionalization
 
 `npm run clean` removes generated build folders only: `wwwroot`, `dist`, `bin`, and `obj`. It deliberately preserves `data/` and `data/uploads/`.
 
-`npm run test:professionalization` runs a lightweight .NET console check project covering password hashing behavior, board permission helpers, upload rejection paths, strict email validation, and sync response diagnostics without requiring external test packages.
+`npm run test:professionalization` runs a lightweight .NET console check project covering password hashing behavior, board permission helpers, upload rejection paths, strict email validation, and sync response diagnostics without requiring external test packages. GitHub Actions runs the frontend checks, backend build, and this harness on pushes and pull requests to `main`.
 
 ## Known Limitations
 
@@ -264,6 +271,6 @@ npm run test:professionalization
 - Activity logs power the board activity feed; they are not intended to be a durable production audit log.
 - AI output uses Gemini when `GEMINI_API_KEY` is configured and falls back to local sample suggestions when it is missing.
 - The memo shield feature is reversible local obfuscation, not production encryption.
-- There is no full production observability or CI/CD pipeline.
+- This repository has basic CI checks, but it does not include full production observability or deployment automation.
 
 These limits are intentional for a student portfolio/course project and keep the code understandable at small scale.

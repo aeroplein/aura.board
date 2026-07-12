@@ -3,6 +3,7 @@ using DigitalVisionBoard.Models;
 using DigitalVisionBoard.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 
@@ -28,6 +29,7 @@ namespace DigitalVisionBoard.Controllers
         }
 
         [HttpPost("register")]
+        [EnableRateLimiting("auth")]
         public async Task<IActionResult> Register([FromBody] RegisterRequest request)
         {
             try
@@ -58,6 +60,7 @@ namespace DigitalVisionBoard.Controllers
         }
 
         [HttpPost("login")]
+        [EnableRateLimiting("auth")]
         public async Task<IActionResult> Login([FromBody] LoginRequest request)
         {
             try
@@ -96,6 +99,7 @@ namespace DigitalVisionBoard.Controllers
         }
 
         [HttpGet("verify-email")]
+        [EnableRateLimiting("auth")]
         public async Task<IActionResult> VerifyEmail([FromQuery] string? email, [FromQuery] string? token)
         {
             try
