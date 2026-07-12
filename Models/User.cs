@@ -13,6 +13,7 @@ namespace DigitalVisionBoard.Models
         public string? AvatarUrl { get; set; }
         public required string PasswordHash { get; set; }
         public required string Salt { get; set; }
+        public bool IsAdmin { get; set; } = false;
         public bool IsEmailVerified { get; set; } = false;
         public string? EmailVerificationToken { get; set; }
         public DateTime? EmailVerificationExpires { get; set; }

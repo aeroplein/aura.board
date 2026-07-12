@@ -15,6 +15,7 @@ var checks = new List<(string Name, Action Check)>
     ("Strict email validation rejects malformed domains", CheckStrictEmailValidation),
     ("Advanced email validation keeps MX checks configurable and blocks disposable domains", CheckAdvancedEmailValidationPolicy),
     ("Registration requires email verification before login", CheckEmailVerificationRegistrationContract),
+    ("Users default to non-admin and session responses expose their own admin state", CheckAdminRoleContract),
     ("Profile identity normalizes usernames and carries avatar fields", CheckProfileIdentityContracts),
     ("SyncResponse exposes diagnostics without breaking board payloads", CheckSyncResponseDiagnostics)
 };
@@ -188,13 +189,31 @@ static void CheckProfileIdentityContracts()
         "Person Example",
         "person.example",
         "/api/images/profile",
-        new UserPreferencesDto(false, true, false));
+        new UserPreferencesDto(false, true, false),
+        false);
 
     Assert(response.Username == "person.example", "User response should expose username.");
     Assert(response.AvatarUrl == "/api/images/profile", "User response should expose avatar URL.");
 
     var request = new RegisterRequest("person@example.com", "portfolio-pass-123", "Person Example", "@person.example");
     Assert(request.Username == "@person.example", "Registration should accept the selected username.");
+}
+
+static void CheckAdminRoleContract()
+{
+    var user = NewUser("member@example.com");
+    Assert(!user.IsAdmin, "New users must not become administrators by default.");
+
+    var response = new UserResponse(
+        user.Id,
+        user.Email,
+        user.Name,
+        user.Username,
+        user.AvatarUrl,
+        new UserPreferencesDto(false, true, false),
+        true);
+
+    Assert(response.IsAdmin, "A signed-in user should receive their own admin state.");
 }
 
 static void CheckEmailVerificationRegistrationContract()
