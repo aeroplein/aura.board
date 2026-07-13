@@ -22,7 +22,7 @@ import { decryptText, encryptText, setupCryptoLab as setupCryptoLabHandlers } fr
 import { escapeHtml } from './utils/html.js';
 import { imageDataAttributes, imageFallbackMarkup, resolveImageSource } from './utils/images.js';
 
-// aura.board • Creative Vision Studio (Vanilla JavaScript Core Platform)
+// Aura Board • Digital Vision Studio (Vanilla JavaScript Core Platform)
 
 // 1. STATE & CACHE REGISTRY
 let currentUser = null;
@@ -2022,15 +2022,15 @@ function getAuthValidationState() {
   }
 
   if (!passwordInput?.value) {
-    return { input: passwordInput, message: 'Enter your Aura Passkey to continue.' };
+    return { input: passwordInput, message: 'Enter your password to continue.' };
   }
 
   if (isRegisterMode && passwordInput.value.length < 8) {
-    return { input: passwordInput, message: 'Aura Passkey must be at least 8 characters.' };
+    return { input: passwordInput, message: 'Password must be at least 8 characters.' };
   }
 
   if (passwordInput.value.length > 128) {
-    return { input: passwordInput, message: 'Aura Passkey cannot be longer than 128 characters.' };
+    return { input: passwordInput, message: 'Password cannot be longer than 128 characters.' };
   }
 
   return null;
@@ -2930,7 +2930,7 @@ async function generateProgrammaticPdf() {
     doc.setFont("Helvetica", "normal");
     doc.setFontSize(10);
     doc.setTextColor(200, 182, 255); // Lilac #C8B6FF (RGB: 200, 182, 255)
-    doc.text("Offline Creator Archive • Created via aura.board studio", 15, 26);
+    doc.text("Aura Board Creator Archive", 15, 26);
     doc.text(`Generated: ${new Date().toLocaleDateString()}`, pageWidth - 15, 26, { align: 'right' });
 
     // 2. Metadata Section (Board Info)
@@ -3157,7 +3157,7 @@ async function generateProgrammaticPdf() {
       doc.setFont("Helvetica", "normal");
       doc.setFontSize(8);
       doc.setTextColor(150, 150, 150);
-      doc.text("aura.board • Materialise Your Intentions", 15, pageHeight - 10);
+      doc.text("Aura Board • Make your intentions visible", 15, pageHeight - 10);
       doc.text(`Page ${i} of ${pageCount}`, pageWidth - 15, pageHeight - 10, { align: 'right' });
     }
 

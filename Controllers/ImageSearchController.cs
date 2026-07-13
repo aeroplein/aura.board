@@ -2,6 +2,7 @@ using System.Text.Json;
 using DigitalVisionBoard.Data;
 using DigitalVisionBoard.Services;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace DigitalVisionBoard.Controllers
 {
@@ -21,6 +22,7 @@ namespace DigitalVisionBoard.Controllers
         }
 
         [HttpGet("api/images/search")]
+        [EnableRateLimiting("provider")]
         public async Task<IActionResult> Search([FromQuery] string? query, [FromQuery] string? sig, [FromQuery] string? format)
         {
             var cleanedQuery = string.IsNullOrWhiteSpace(query) ? "creative workspace" : query.Trim();

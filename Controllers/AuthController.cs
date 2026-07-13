@@ -3,6 +3,7 @@ using DigitalVisionBoard.Models;
 using DigitalVisionBoard.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 
@@ -28,6 +29,7 @@ namespace DigitalVisionBoard.Controllers
         }
 
         [HttpPost("register")]
+        [EnableRateLimiting("auth")]
         public async Task<IActionResult> Register([FromBody] RegisterRequest request)
         {
             try
@@ -58,6 +60,7 @@ namespace DigitalVisionBoard.Controllers
         }
 
         [HttpPost("login")]
+        [EnableRateLimiting("auth")]
         public async Task<IActionResult> Login([FromBody] LoginRequest request)
         {
             try
@@ -72,15 +75,62 @@ namespace DigitalVisionBoard.Controllers
                 SetAuthCookie(response);
                 return Ok(response);
             }
-            catch (EmailVerificationRequiredException ex)
-            {
-                return StatusCode(StatusCodes.Status403Forbidden, new { error = ex.Message });
-            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Login failed.");
                 return StatusCode(StatusCodes.Status503ServiceUnavailable, new { error = "Accounts are temporarily unavailable. Check the database configuration and try again." });
             }
+        }
+
+        [HttpPost("resend-verification")]
+        [EnableRateLimiting("recovery")]
+        public async Task<IActionResult> ResendVerification([FromBody] EmailRecoveryRequest request)
+        {
+            try
+            {
+                await _authService.RequestEmailVerificationResendAsync(request.Email);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Verification resend request failed.");
+            }
+
+            return Accepted(new { message = "If that account needs verification, we sent a new verification email." });
+        }
+
+        [HttpPost("forgot-password")]
+        [EnableRateLimiting("recovery")]
+        public async Task<IActionResult> ForgotPassword([FromBody] EmailRecoveryRequest request)
+        {
+            try
+            {
+                await _authService.RequestPasswordResetAsync(request.Email);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Password reset request failed.");
+            }
+
+            return Accepted(new { message = "If an account exists for that email, we sent a password reset link." });
+        }
+
+        [HttpGet("reset-password")]
+        public IActionResult ResetPassword([FromQuery] string? email, [FromQuery] string? token)
+        {
+            return PasswordResetPage(StatusCodes.Status200OK, "", "", email, token);
+        }
+
+        [HttpPost("reset-password")]
+        [EnableRateLimiting("recovery")]
+        public async Task<IActionResult> ResetPassword([FromForm] ResetPasswordRequest request)
+        {
+            var result = await _authService.ResetPasswordAsync(request);
+            return result switch
+            {
+                PasswordResetResult.Success => PasswordResetPage(StatusCodes.Status200OK, "success", "Your password has been updated", request.Email, null),
+                PasswordResetResult.Expired => PasswordResetPage(StatusCodes.Status400BadRequest, "error", "This reset link has expired", request.Email, request.Token),
+                _ => PasswordResetPage(StatusCodes.Status400BadRequest, "error", "This reset link is invalid", request.Email, request.Token)
+            };
         }
 
         [HttpGet("session")]
@@ -96,6 +146,7 @@ namespace DigitalVisionBoard.Controllers
         }
 
         [HttpGet("verify-email")]
+        [EnableRateLimiting("auth")]
         public async Task<IActionResult> VerifyEmail([FromQuery] string? email, [FromQuery] string? token)
         {
             try
@@ -158,6 +209,16 @@ namespace DigitalVisionBoard.Controllers
             ViewData["Title"] = title;
             ViewData["Message"] = message;
             return View("~/Views/Home/EmailVerification.cshtml");
+        }
+
+        private ViewResult PasswordResetPage(int statusCode, string state, string title, string? email, string? token)
+        {
+            Response.StatusCode = statusCode;
+            ViewData["State"] = state;
+            ViewData["Title"] = title;
+            ViewData["Email"] = email ?? string.Empty;
+            ViewData["Token"] = token ?? string.Empty;
+            return View("~/Views/Home/PasswordReset.cshtml");
         }
 
         [HttpPost("logout")]

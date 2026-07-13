@@ -55,6 +55,9 @@ namespace DigitalVisionBoard.Data
 
                 entity.Property(u => u.EmailVerificationToken)
                     .HasMaxLength(64);
+
+                entity.Property(u => u.PasswordResetToken)
+                    .HasMaxLength(64);
             });
 
             modelBuilder.Entity<Board>(entity =>
@@ -135,6 +138,10 @@ namespace DigitalVisionBoard.Data
 
             modelBuilder.Entity<User>()
                 .HasIndex(u => u.EmailVerificationToken)
+                .IsUnique();
+
+            modelBuilder.Entity<User>()
+                .HasIndex(u => u.PasswordResetToken)
                 .IsUnique();
 
             modelBuilder.Entity<User>()

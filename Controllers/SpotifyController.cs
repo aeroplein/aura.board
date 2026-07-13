@@ -1,6 +1,7 @@
 using DigitalVisionBoard.Data;
 using DigitalVisionBoard.Services;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace DigitalVisionBoard.Controllers
 {
@@ -20,6 +21,7 @@ namespace DigitalVisionBoard.Controllers
         }
 
         [HttpGet("api/spotify/search")]
+        [EnableRateLimiting("provider")]
         public async Task<IActionResult> Search([FromQuery] string? q, CancellationToken cancellationToken)
         {
             var user = await GetCurrentUserAsync();

@@ -90,9 +90,6 @@ export function renderUserSettings({ getCurrentUser }) {
   if (avatarUrlInput) avatarUrlInput.value = user.avatarUrl || '';
   if (avatarFileInput) avatarFileInput.value = '';
   renderAvatarPreview(user);
-  setToggleChecked('user-settings-toggle-notif', preferences.notificationsEnabled);
-  setToggleChecked('user-settings-toggle-theme', preferences.darkMode);
-  setToggleChecked('user-settings-toggle-contrast', preferences.highContrast);
   setToggleChecked('settings-toggle-notif', preferences.notificationsEnabled);
   setToggleChecked('settings-toggle-contrast', preferences.highContrast);
 
@@ -109,9 +106,6 @@ export function setupSettingsHandlers({
 }) {
   const toggleNotif = document.getElementById('settings-toggle-notif');
   const toggleContr = document.getElementById('settings-toggle-contrast');
-  const userToggleNotif = document.getElementById('user-settings-toggle-notif');
-  const userToggleTheme = document.getElementById('user-settings-toggle-theme');
-  const userToggleContr = document.getElementById('user-settings-toggle-contrast');
   const logoutBtn = document.getElementById('btn-purge-caches');
   const userLogoutBtn = document.getElementById('btn-user-settings-logout');
   const profileForm = document.getElementById('settings-profile-form');
@@ -302,31 +296,10 @@ export function setupSettingsHandlers({
     );
   });
 
-  userToggleNotif?.addEventListener('change', () => {
-    handlePreferenceChange(
-      { notificationsEnabled: userToggleNotif.checked },
-      `Preference saved. Collaborative alerts: ${userToggleNotif.checked ? 'Enabled' : 'Disabled'}.`
-    );
-  });
-
-  userToggleTheme?.addEventListener('change', () => {
-    handlePreferenceChange(
-      { darkMode: userToggleTheme.checked },
-      `Preference saved. Theme: ${userToggleTheme.checked ? 'Dark' : 'Light'}.`
-    );
-  });
-
   toggleContr?.addEventListener('change', () => {
     handlePreferenceChange(
       { highContrast: toggleContr.checked },
       `Preference saved. Contrast: ${toggleContr.checked ? 'Enabled' : 'Disabled'}.`
-    );
-  });
-
-  userToggleContr?.addEventListener('change', () => {
-    handlePreferenceChange(
-      { highContrast: userToggleContr.checked },
-      `Preference saved. Contrast: ${userToggleContr.checked ? 'Enabled' : 'Disabled'}.`
     );
   });
 

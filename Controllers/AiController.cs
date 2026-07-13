@@ -6,6 +6,7 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using DigitalVisionBoard.Data;
 using DigitalVisionBoard.Models;
 using DigitalVisionBoard.Services;
@@ -26,6 +27,7 @@ namespace DigitalVisionBoard.Controllers
         }
 
         [HttpPost("board/recommendations")]
+        [EnableRateLimiting("provider")]
         public async Task<IActionResult> GetRecommendations([FromBody] RecommendationsRequest request)
         {
             var user = await GetCurrentUserAsync();
@@ -119,6 +121,7 @@ Ensure valid JSON output. Output nothing else.";
         }
 
         [HttpPost("inspiration")]
+        [EnableRateLimiting("provider")]
         public async Task<IActionResult> GetInspiration([FromBody] InspirationRequest request)
         {
             var user = await GetCurrentUserAsync();
