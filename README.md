@@ -1,6 +1,6 @@
-# Aura Board
+# aura.board - Digital Vision Board
 
-Aura Board is a student full-stack project for creating personal vision boards. Users can arrange draggable notes, quotes, images, and Spotify tracks on a canvas, share boards with collaborators, and optionally generate ideas with Gemini.
+aura.board is a student portfolio project for creating personal vision boards with movable notes, quotes, images, Spotify tracks, AI-assisted inspiration, and lightweight collaboration.
 
 It is intentionally portfolio-scale rather than a production SaaS. The project focuses on a polished board-creation experience, secure server boundaries, and an honest explanation of its limits.
 
@@ -11,7 +11,7 @@ It is intentionally portfolio-scale rather than a production SaaS. The project f
 - Create, edit, and share personal vision boards.
 - Arrange movable quote, note, text, image, and music cards on a canvas.
 - Use optional Gemini-assisted ideas and image prompts; local starter suggestions remain available without an API key.
-- Register with email verification and use HttpOnly cookie sessions.
+- Register with an email confirmation and use HttpOnly cookie sessions.
 
 ## Tech Stack
 
