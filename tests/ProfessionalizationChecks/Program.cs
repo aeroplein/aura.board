@@ -14,7 +14,7 @@ var checks = new List<(string Name, Action Check)>
     ("ImageStorageService rejects invalid upload payloads before database writes", CheckImageUploadValidation),
     ("Strict email validation rejects malformed domains", CheckStrictEmailValidation),
     ("Advanced email validation keeps MX checks configurable and blocks disposable domains", CheckAdvancedEmailValidationPolicy),
-    ("Registration requires email verification before login", CheckEmailVerificationRegistrationContract),
+    ("Registration sends email confirmation without blocking later login", CheckEmailVerificationRegistrationContract),
     ("Account recovery exposes one-hour, single-use password-reset contracts", CheckAccountRecoveryContracts),
     ("Users default to non-admin and session responses expose their own admin state", CheckAdminRoleContract),
     ("Profile identity normalizes usernames and carries avatar fields", CheckProfileIdentityContracts),
@@ -222,11 +222,10 @@ static void CheckEmailVerificationRegistrationContract()
     var response = new RegistrationResponse(
         "person@example.com",
         true,
-        "Account created. Check your email and verify your address before signing in.");
+        "Account created. We sent an email confirmation to your address.");
 
     Assert(response.VerificationEmailSent, "Registration should report that a verification email was sent.");
-    Assert(response.Message.Contains("verify", StringComparison.OrdinalIgnoreCase), "Registration response should tell users to verify email before login.");
-    Assert(new EmailVerificationRequiredException().Message.Contains("verify", StringComparison.OrdinalIgnoreCase), "Unverified login should have a clear verification error.");
+    Assert(response.Message.Contains("confirmation", StringComparison.OrdinalIgnoreCase), "Registration response should confirm that signup sent an email.");
 }
 
 static void CheckAccountRecoveryContracts()

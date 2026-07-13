@@ -140,7 +140,7 @@ The app uses real password hashing and HttpOnly cookie sessions, but it does not
 - `POST /api/auth/register` creates an unverified user, sends a verification email, and returns `201 Created` without setting an auth cookie.
 - Duplicate registration emails return `409 Conflict`.
 - `GET /api/auth/verify-email?email={email}&token={token}` verifies an email verification token.
-- `POST /api/auth/login` sets the HttpOnly JWT auth cookie only after the account email has been verified.
+- `POST /api/auth/login` sets the HttpOnly JWT auth cookie. Email confirmation remains available from signup, but does not block later sign-ins.
 - `POST /api/auth/resend-verification` sends a new verification link for an unverified account without revealing whether an account exists.
 - `POST /api/auth/forgot-password` sends a one-hour, single-use password-reset link without revealing whether an account exists.
 - `GET` and `POST /api/auth/reset-password` render and submit the password-reset flow.

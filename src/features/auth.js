@@ -208,7 +208,7 @@ export function setupAuthForm({
       }
 
       if (authMode === 'register') {
-        alert.textContent = data?.message || 'Account created. Check your email before signing in.';
+        alert.textContent = data?.message || 'Account created. We sent an email confirmation to your address.';
         alert.classList.add('auth-alert-success');
         alert.classList.remove('d-none');
         toggleAuthMode('login');
