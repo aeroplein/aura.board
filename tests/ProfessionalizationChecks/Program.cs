@@ -1,5 +1,6 @@
 using System.Reflection;
 using DigitalVisionBoard.Data;
+using DigitalVisionBoard.Controllers;
 using DigitalVisionBoard.Models;
 using DigitalVisionBoard.Services;
 using Microsoft.EntityFrameworkCore;
@@ -16,6 +17,7 @@ var checks = new List<(string Name, Action Check)>
     ("Advanced email validation keeps MX checks configurable and blocks disposable domains", CheckAdvancedEmailValidationPolicy),
     ("Registration sends email confirmation without blocking later login", CheckEmailVerificationRegistrationContract),
     ("Account recovery exposes one-hour, single-use password-reset contracts", CheckAccountRecoveryContracts),
+    ("Image search translates detailed lifestyle prompts into visual concepts", CheckImageSearchConceptMapping),
     ("Users default to non-admin and session responses expose their own admin state", CheckAdminRoleContract),
     ("Profile identity normalizes usernames and carries avatar fields", CheckProfileIdentityContracts),
     ("SyncResponse exposes diagnostics without breaking board payloads", CheckSyncResponseDiagnostics)
@@ -238,6 +240,21 @@ static void CheckAccountRecoveryContracts()
     var resetRequest = new ResetPasswordRequest("person@example.com", "token", "portfolio-pass-123");
     Assert(recoveryRequest.Email == "person@example.com", "Recovery requests should carry the email address.");
     Assert(resetRequest.Token == "token", "Password-reset requests should carry the reset token.");
+}
+
+static void CheckImageSearchConceptMapping()
+{
+    var queryBuilder = typeof(ImageSearchController).GetMethod("BuildSearchQuery", BindingFlags.NonPublic | BindingFlags.Static)
+        ?? throw new InvalidOperationException("Image search query builder not found.");
+
+    var searchQuery = (string)(queryBuilder.Invoke(null, new object[]
+    {
+        "Couple enjoying quiet luxury breakfast in bed, sunlit Parisian apartment, elegant linens, fresh flowers"
+    }) ?? string.Empty);
+
+    Assert(searchQuery.Contains("romantic couple", StringComparison.Ordinal), "Relationship prompts should search for a couple.");
+    Assert(searchQuery.Contains("elegant home interior", StringComparison.Ordinal), "Luxury-home prompts should search for an interior.");
+    Assert(searchQuery.Contains("breakfast in bed flowers", StringComparison.Ordinal), "Breakfast prompts should retain their visual scene.");
 }
 
 static void CheckSyncResponseDiagnostics()
