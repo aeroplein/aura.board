@@ -26,6 +26,7 @@ namespace DigitalVisionBoard.Controllers
         public async Task<IActionResult> Search([FromQuery] string? query, [FromQuery] string? sig, [FromQuery] string? format)
         {
             var cleanedQuery = string.IsNullOrWhiteSpace(query) ? "creative workspace" : query.Trim();
+            var searchQuery = BuildSearchQuery(cleanedQuery);
             var accessKey = Environment.GetEnvironmentVariable("UNSPLASH_ACCESS_KEY");
             var wantsJson = string.Equals(format, "json", StringComparison.OrdinalIgnoreCase);
 
@@ -39,7 +40,7 @@ namespace DigitalVisionBoard.Controllers
             {
                 var requestUrl =
                     "https://api.unsplash.com/photos/random" +
-                    $"?query={Uri.EscapeDataString(cleanedQuery)}" +
+                    $"?query={Uri.EscapeDataString(searchQuery)}" +
                     "&orientation=landscape" +
                     "&content_filter=high";
 
@@ -109,6 +110,10 @@ namespace DigitalVisionBoard.Controllers
             var lower = query.ToLowerInvariant();
             var fallback = lower switch
             {
+                var value when ContainsAny(value, "couple", "romantic", "romance", "love", "intimate", "relationship", "shared") =>
+                    "https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?auto=format&fit=crop&w=1200&q=80",
+                var value when ContainsAny(value, "luxury", "elegant", "parisian", "apartment", "interior", "home", "breakfast") =>
+                    "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=1200&q=80",
                 var value when ContainsAny(value, "reading", "book", "library", "nook", "sanctuary") =>
                     "https://images.unsplash.com/photo-1495446815901-a7297e633e8d?auto=format&fit=crop&w=1200&q=80",
                 var value when ContainsAny(value, "garden", "plant", "green", "sustainable", "urban") =>
@@ -125,6 +130,39 @@ namespace DigitalVisionBoard.Controllers
             };
 
             return string.IsNullOrWhiteSpace(sig) ? fallback : $"{fallback}&sig={Uri.EscapeDataString(sig)}";
+        }
+
+        private static string BuildSearchQuery(string query)
+        {
+            var lower = query.ToLowerInvariant();
+            var concepts = new List<string>();
+
+            if (ContainsAny(lower, "couple", "romantic", "romance", "love", "intimate", "relationship", "shared"))
+            {
+                concepts.Add("romantic couple");
+            }
+
+            if (ContainsAny(lower, "luxury", "elegant", "parisian", "apartment", "interior", "home"))
+            {
+                concepts.Add("elegant home interior");
+            }
+
+            if (ContainsAny(lower, "breakfast", "bed", "flowers", "sunlit"))
+            {
+                concepts.Add("breakfast in bed flowers");
+            }
+
+            if (ContainsAny(lower, "career", "success", "entrepreneur", "business", "workspace"))
+            {
+                concepts.Add("woman entrepreneur workspace");
+            }
+
+            if (ContainsAny(lower, "travel", "adventure", "global", "journey", "destination"))
+            {
+                concepts.Add("luxury travel destination");
+            }
+
+            return concepts.Count > 0 ? string.Join(' ', concepts) : query;
         }
 
         private static bool ContainsAny(string value, params string[] terms)

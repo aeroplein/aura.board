@@ -2,6 +2,14 @@ import { escapeHtml } from './html.js';
 
 const curatedImageSources = [
   {
+    terms: ['couple', 'romantic', 'romance', 'love', 'intimate', 'relationship', 'shared'],
+    url: 'https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?auto=format&fit=crop&w=1200&q=80'
+  },
+  {
+    terms: ['luxury', 'elegant', 'parisian', 'apartment', 'interior', 'home', 'breakfast'],
+    url: 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=1200&q=80'
+  },
+  {
     terms: ['reading', 'book', 'library', 'cozy', 'nook', 'sanctuary'],
     url: 'https://images.unsplash.com/photo-1495446815901-a7297e633e8d?auto=format&fit=crop&w=1200&q=80'
   },
