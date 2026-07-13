@@ -142,11 +142,32 @@ export function setupAuthForm({
   const alert = document.getElementById('auth-alert');
   const toggleBtn = document.getElementById('btn-toggle-auth-mode');
 
-  let isRegisterMode = true;
+  let authMode = 'register';
 
   toggleBtn.addEventListener('click', () => {
-    isRegisterMode = !isRegisterMode;
-    toggleAuthMode(isRegisterMode);
+    authMode = authMode === 'login' ? 'register' : 'login';
+    toggleAuthMode(authMode);
+  });
+
+  document.getElementById('btn-forgot-password')?.addEventListener('click', () => {
+    authMode = 'forgot';
+    toggleAuthMode(authMode);
+  });
+
+  document.getElementById('btn-resend-verification')?.addEventListener('click', async () => {
+    const email = document.getElementById('auth-input-email').value.trim();
+    if (!email) {
+      showAuthValidationMessage(alert, 'Enter your email address first.');
+      return;
+    }
+
+    await sendRecoveryRequest({
+      endpoint: '/api/auth/resend-verification',
+      email,
+      alert,
+      button: document.getElementById('btn-resend-verification'),
+      pendingText: 'Sending...'
+    });
   });
 
   form.addEventListener('submit', async (e) => {
@@ -158,7 +179,7 @@ export function setupAuthForm({
     let submitTextAfterSuccess = null;
     if (submitBtn) {
       submitBtn.disabled = true;
-      submitBtn.textContent = isRegisterMode ? 'Creating workspace...' : 'Signing in...';
+      submitBtn.textContent = authMode === 'register' ? 'Creating workspace...' : authMode === 'forgot' ? 'Sending reset link...' : 'Signing in...';
     }
 
     const email = document.getElementById('auth-input-email').value;
@@ -166,8 +187,8 @@ export function setupAuthForm({
     const name = document.getElementById('auth-input-name').value;
     const username = document.getElementById('auth-input-username')?.value.trim().replace(/^@+/, '');
 
-    const endpoint = isRegisterMode ? '/api/auth/register' : '/api/auth/login';
-    const bodyObj = isRegisterMode ? { email, password, name, username } : { email, password };
+    const endpoint = authMode === 'register' ? '/api/auth/register' : authMode === 'forgot' ? '/api/auth/forgot-password' : '/api/auth/login';
+    const bodyObj = authMode === 'register' ? { email, password, name, username } : authMode === 'forgot' ? { email } : { email, password };
 
     try {
       const res = await fetchWithCredentials(endpoint, {
@@ -178,7 +199,7 @@ export function setupAuthForm({
 
       const data = await parseJsonResponse(
         res,
-        isRegisterMode
+        authMode === 'register'
           ? 'We could not create your account right now. Please try again in a moment.'
           : 'We could not sign you in right now. Please try again in a moment.'
       );
@@ -186,15 +207,23 @@ export function setupAuthForm({
         throw new Error(getApiErrorMessage(data));
       }
 
-      if (isRegisterMode) {
+      if (authMode === 'register') {
         alert.textContent = data?.message || 'Account created. Check your email before signing in.';
         alert.classList.add('auth-alert-success');
         alert.classList.remove('d-none');
-        toggleAuthMode(false);
-        isRegisterMode = false;
+        toggleAuthMode('login');
+        authMode = 'login';
         submitTextAfterSuccess = 'Sign in';
         form.reset();
         document.getElementById('auth-input-email').value = data?.email || email;
+        return;
+      }
+
+      if (authMode === 'forgot') {
+        alert.textContent = data?.message || 'If an account exists for that email, we sent a password reset link.';
+        alert.classList.add('auth-alert-success');
+        alert.classList.remove('d-none');
+        submitTextAfterSuccess = 'Email reset link';
         return;
       }
 
@@ -218,24 +247,74 @@ export function setupAuthForm({
   });
 }
 
-export function toggleAuthMode(regMode) {
+async function sendRecoveryRequest({ endpoint, email, alert, button, pendingText }) {
+  const originalText = button?.textContent || '';
+  try {
+    if (button) {
+      button.disabled = true;
+      button.textContent = pendingText;
+    }
+    const res = await fetchWithCredentials(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email })
+    });
+    const data = await parseJsonResponse(res, 'We could not send that email right now. Please try again later.');
+    if (!res.ok) throw new Error(getApiErrorMessage(data));
+
+    alert.textContent = data?.message || 'If an account matches that email, we sent a new link.';
+    alert.classList.add('auth-alert-success');
+    alert.classList.remove('d-none');
+  } catch (err) {
+    alert.classList.remove('auth-alert-success');
+    showAuthValidationMessage(alert, getFriendlyAuthError(err.message));
+  } finally {
+    if (button) {
+      button.disabled = false;
+      button.textContent = originalText;
+    }
+  }
+}
+
+export function toggleAuthMode(mode) {
+  const regMode = mode === true || mode === 'register';
+  const forgotMode = mode === 'forgot';
   const nameGroup = document.getElementById('group-auth-name');
   const usernameGroup = document.getElementById('group-auth-username');
+  const passwordGroup = document.getElementById('group-auth-password');
   const title = document.getElementById('authModalTitle');
   const intro = document.getElementById('auth-modal-intro');
   const toggleBtn = document.getElementById('btn-toggle-auth-mode');
   const submitBtn = document.getElementById('btn-auth-submit');
+  const recoveryActions = document.getElementById('auth-recovery-actions');
+  const passwordInput = document.getElementById('auth-input-password');
 
   if (regMode) {
     nameGroup.classList.remove('d-none');
     usernameGroup?.classList.remove('d-none');
+    passwordGroup?.classList.remove('d-none');
+    recoveryActions?.classList.add('d-none');
+    passwordInput.required = true;
     title.textContent = 'Create your Aura Board account';
     if (intro) intro.textContent = 'Choose a name and handle for your profile.';
     toggleBtn.innerHTML = 'Already have an account? <strong class="text-[#5E548E]">Sign in</strong>';
     submitBtn.textContent = 'Create account';
+  } else if (forgotMode) {
+    nameGroup.classList.add('d-none');
+    usernameGroup?.classList.add('d-none');
+    passwordGroup?.classList.add('d-none');
+    recoveryActions?.classList.add('d-none');
+    passwordInput.required = false;
+    title.textContent = 'Reset your password';
+    if (intro) intro.textContent = "We'll email a one-hour link if that account exists.";
+    toggleBtn.innerHTML = 'Remembered it? <strong class="text-[#5E548E]">Back to Sign In</strong>';
+    submitBtn.textContent = 'Email reset link';
   } else {
     nameGroup.classList.add('d-none');
     usernameGroup?.classList.add('d-none');
+    passwordGroup?.classList.remove('d-none');
+    recoveryActions?.classList.remove('d-none');
+    passwordInput.required = true;
     title.textContent = 'Welcome back to Aura Board';
     if (intro) intro.textContent = 'Sign in to access your boards and profile.';
     toggleBtn.innerHTML = 'New here? <strong class="text-[#5E548E]">Create an account</strong>';

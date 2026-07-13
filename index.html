@@ -1645,7 +1645,7 @@
                 <input type="email" id="auth-input-email" class="form-control rounded-xl border-[#C8B6FF]/35 bg-[#F8F7FF] text-xs py-2 text-[#5E548E]" placeholder="you@example.com" required />
               </div>
 
-              <div>
+              <div id="group-auth-password">
                 <label for="auth-input-password" class="form-label text-xs font-bold font-mono text-[#5E548E]/80">Password</label>
                 <input type="password" id="auth-input-password" class="form-control rounded-xl border-[#C8B6FF]/35 bg-[#F8F7FF] text-xs py-2 text-[#5E548E]" placeholder="••••••••" required />
               </div>
@@ -1657,6 +1657,11 @@
               <button id="btn-toggle-auth-mode" type="button" class="btn btn-link text-xs text-[#9F86C0] hover:text-[#5E548E] text-decoration-none">
                 Already curating? <strong class="text-[#5E548E]">Sign In</strong>
               </button>
+              <div id="auth-recovery-actions" class="d-none mt-2 text-[11px]">
+                <button id="btn-resend-verification" type="button" class="btn btn-link p-0 text-[#9F86C0] hover:text-[#5E548E] text-decoration-none">Resend verification email</button>
+                <span class="text-[#C8B6FF] px-1">·</span>
+                <button id="btn-forgot-password" type="button" class="btn btn-link p-0 text-[#9F86C0] hover:text-[#5E548E] text-decoration-none">Forgot password?</button>
+              </div>
             </div>
 
           </div>

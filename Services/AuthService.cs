@@ -22,6 +22,15 @@ namespace DigitalVisionBoard.Services
         Expired
     }
 
+    public enum PasswordResetResult
+    {
+        Success,
+        MissingParameters,
+        UserNotFound,
+        InvalidToken,
+        Expired
+    }
+
     public class EmailVerificationRequiredException : InvalidOperationException
     {
         public EmailVerificationRequiredException()
@@ -43,6 +52,7 @@ namespace DigitalVisionBoard.Services
         public const string AuthCookieName = "vision_board_auth";
         public static readonly TimeSpan TokenLifetime = TimeSpan.FromHours(8);
         public static readonly TimeSpan EmailVerificationTokenLifetime = TimeSpan.FromHours(24);
+        public static readonly TimeSpan PasswordResetTokenLifetime = TimeSpan.FromHours(1);
 
         private const int LegacyIterations = 1_000;
         private const int CurrentIterations = 210_000;
@@ -189,6 +199,101 @@ namespace DigitalVisionBoard.Services
             await _context.SaveChangesAsync();
 
             return EmailVerificationResult.Success;
+        }
+
+        public async Task RequestEmailVerificationResendAsync(string email)
+        {
+            var normalizedEmail = NormalizeEmail(email);
+            if (!StrictEmailValidator.IsValid(normalizedEmail))
+            {
+                return;
+            }
+
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == normalizedEmail);
+            if (user == null || user.IsEmailVerified)
+            {
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(user.EmailVerificationToken) ||
+                !user.EmailVerificationExpires.HasValue ||
+                user.EmailVerificationExpires.Value <= DateTime.UtcNow)
+            {
+                user.EmailVerificationToken = await GenerateUniqueEmailVerificationTokenAsync();
+                user.EmailVerificationExpires = DateTime.UtcNow.Add(EmailVerificationTokenLifetime);
+                await _context.SaveChangesAsync();
+            }
+
+            try
+            {
+                await SendVerificationEmailAsync(user);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Verification resend failed for user {UserId}; ExceptionType {ExceptionType}", user.Id, ex.GetType().Name);
+            }
+        }
+
+        public async Task RequestPasswordResetAsync(string email)
+        {
+            var normalizedEmail = NormalizeEmail(email);
+            if (!StrictEmailValidator.IsValid(normalizedEmail))
+            {
+                return;
+            }
+
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == normalizedEmail);
+            if (user == null)
+            {
+                return;
+            }
+
+            user.PasswordResetToken = await GenerateUniquePasswordResetTokenAsync();
+            user.PasswordResetExpires = DateTime.UtcNow.Add(PasswordResetTokenLifetime);
+            await _context.SaveChangesAsync();
+
+            try
+            {
+                await SendPasswordResetEmailAsync(user);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Password reset email failed for user {UserId}; ExceptionType {ExceptionType}", user.Id, ex.GetType().Name);
+            }
+        }
+
+        public async Task<PasswordResetResult> ResetPasswordAsync(ResetPasswordRequest request)
+        {
+            if (!StrictEmailValidator.IsValid(request.Email) || string.IsNullOrWhiteSpace(request.Token))
+            {
+                return PasswordResetResult.MissingParameters;
+            }
+
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == NormalizeEmail(request.Email));
+            if (user == null)
+            {
+                return PasswordResetResult.UserNotFound;
+            }
+
+            if (string.IsNullOrWhiteSpace(user.PasswordResetToken) ||
+                !FixedTimeEquals(user.PasswordResetToken, request.Token.Trim()))
+            {
+                return PasswordResetResult.InvalidToken;
+            }
+
+            if (!user.PasswordResetExpires.HasValue || user.PasswordResetExpires.Value <= DateTime.UtcNow)
+            {
+                return PasswordResetResult.Expired;
+            }
+
+            var (salt, passwordHash) = HashPassword(request.Password);
+            user.Salt = salt;
+            user.PasswordHash = passwordHash;
+            user.PasswordResetToken = null;
+            user.PasswordResetExpires = null;
+            await _context.SaveChangesAsync();
+
+            return PasswordResetResult.Success;
         }
 
         public async Task<User?> GetUserFromJwtAsync(string? token)
@@ -341,6 +446,27 @@ namespace DigitalVisionBoard.Services
             }
         }
 
+        private async Task SendPasswordResetEmailAsync(User user)
+        {
+            if (string.IsNullOrWhiteSpace(user.PasswordResetToken))
+            {
+                return;
+            }
+
+            var resetUrl = BuildPasswordResetUrl(user.Email, user.PasswordResetToken);
+            var subject = "Reset your Digital Vision Board password";
+            var encodedName = WebUtility.HtmlEncode(user.Name);
+            var encodedUrl = WebUtility.HtmlEncode(resetUrl);
+            var body = $"""
+                <p>Hello {encodedName},</p>
+                <p>We received a request to reset your Digital Vision Board password.</p>
+                <p><a href="{encodedUrl}">Reset your password</a></p>
+                <p>This link expires in one hour. If you did not request a reset, you can ignore this email.</p>
+                """;
+
+            await _emailService.SendEmailAsync(user.Email, subject, body);
+        }
+
         private string BuildEmailVerificationUrl(string email, string token)
         {
             var baseUrl = string.IsNullOrWhiteSpace(_mailSettings.AppBaseUrl)
@@ -348,6 +474,15 @@ namespace DigitalVisionBoard.Services
                 : _mailSettings.AppBaseUrl.TrimEnd('/');
 
             return $"{baseUrl}/api/auth/verify-email?email={Uri.EscapeDataString(email)}&token={Uri.EscapeDataString(token)}";
+        }
+
+        private string BuildPasswordResetUrl(string email, string token)
+        {
+            var baseUrl = string.IsNullOrWhiteSpace(_mailSettings.AppBaseUrl)
+                ? "http://localhost:5000"
+                : _mailSettings.AppBaseUrl.TrimEnd('/');
+
+            return $"{baseUrl}/api/auth/reset-password?email={Uri.EscapeDataString(email)}&token={Uri.EscapeDataString(token)}";
         }
 
         private static string GenerateEmailVerificationToken()
@@ -367,6 +502,20 @@ namespace DigitalVisionBoard.Services
             }
 
             throw new InvalidOperationException("Could not generate a unique email verification token.");
+        }
+
+        private async Task<string> GenerateUniquePasswordResetTokenAsync()
+        {
+            for (var attempt = 0; attempt < 5; attempt++)
+            {
+                var token = GenerateEmailVerificationToken();
+                if (!await _context.Users.AnyAsync(u => u.PasswordResetToken == token))
+                {
+                    return token;
+                }
+            }
+
+            throw new InvalidOperationException("Could not generate a unique password reset token.");
         }
 
         private static bool VerifyPassword(string password, User user, out bool needsRehash)

@@ -74,6 +74,7 @@ builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
     options.AddPolicy("auth", context => CreateFixedWindowLimiter(context, permitLimit: 10, window: TimeSpan.FromMinutes(1)));
+    options.AddPolicy("recovery", context => CreateFixedWindowLimiter(context, permitLimit: 5, window: TimeSpan.FromMinutes(15)));
     options.AddPolicy("provider", context => CreateFixedWindowLimiter(context, permitLimit: 20, window: TimeSpan.FromMinutes(1)));
 });
 
