@@ -233,11 +233,12 @@ static void CheckEmailVerificationRegistrationContract()
 static void CheckAccountRecoveryContracts()
 {
     Assert(AuthService.PasswordResetTokenLifetime == TimeSpan.FromHours(1), "Password-reset links should expire after one hour.");
-    Assert(typeof(User).GetProperty(nameof(User.PasswordResetToken)) != null, "Users should persist a password-reset token.");
+    Assert(typeof(User).GetProperty(nameof(User.PasswordResetTokenHash)) != null, "Users should persist only a password-reset token hash.");
     Assert(typeof(User).GetProperty(nameof(User.PasswordResetExpires)) != null, "Users should persist password-reset expiry.");
+    Assert(typeof(User).GetProperty(nameof(User.SessionVersion)) != null, "Users should support session invalidation after a reset.");
 
     var recoveryRequest = new EmailRecoveryRequest("person@example.com");
-    var resetRequest = new ResetPasswordRequest("person@example.com", "token", "portfolio-pass-123");
+    var resetRequest = new ResetPasswordRequest("token", "portfolio-pass-123");
     Assert(recoveryRequest.Email == "person@example.com", "Recovery requests should carry the email address.");
     Assert(resetRequest.Token == "token", "Password-reset requests should carry the reset token.");
 }

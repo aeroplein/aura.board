@@ -17,8 +17,11 @@ namespace DigitalVisionBoard.Models
         public bool IsEmailVerified { get; set; } = false;
         public string? EmailVerificationToken { get; set; }
         public DateTime? EmailVerificationExpires { get; set; }
-        public string? PasswordResetToken { get; set; }
+        // Never persist the bearer secret from a reset email. Only its SHA-256 digest is stored.
+        public string? PasswordResetTokenHash { get; set; }
         public DateTime? PasswordResetExpires { get; set; }
+        // Invalidates every previously issued JWT when incremented.
+        public int SessionVersion { get; set; } = 0;
 
         // User Preferences stored flat in the same table
         public bool DarkMode { get; set; } = false;

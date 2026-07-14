@@ -115,9 +115,9 @@ namespace DigitalVisionBoard.Controllers
         }
 
         [HttpGet("reset-password")]
-        public IActionResult ResetPassword([FromQuery] string? email, [FromQuery] string? token)
+        public IActionResult ResetPassword()
         {
-            return PasswordResetPage(StatusCodes.Status200OK, "", "", email, token);
+            return PasswordResetPage(StatusCodes.Status200OK, "", "");
         }
 
         [HttpPost("reset-password")]
@@ -127,9 +127,9 @@ namespace DigitalVisionBoard.Controllers
             var result = await _authService.ResetPasswordAsync(request);
             return result switch
             {
-                PasswordResetResult.Success => PasswordResetPage(StatusCodes.Status200OK, "success", "Your password has been updated", request.Email, null),
-                PasswordResetResult.Expired => PasswordResetPage(StatusCodes.Status400BadRequest, "error", "This reset link has expired", request.Email, request.Token),
-                _ => PasswordResetPage(StatusCodes.Status400BadRequest, "error", "This reset link is invalid", request.Email, request.Token)
+                PasswordResetResult.Success => PasswordResetPage(StatusCodes.Status200OK, "success", "Your password has been updated"),
+                PasswordResetResult.Expired => PasswordResetPage(StatusCodes.Status400BadRequest, "error", "This reset link has expired"),
+                _ => PasswordResetPage(StatusCodes.Status400BadRequest, "error", "This reset link is invalid")
             };
         }
 
@@ -211,13 +211,13 @@ namespace DigitalVisionBoard.Controllers
             return View("~/Views/Home/EmailVerification.cshtml");
         }
 
-        private ViewResult PasswordResetPage(int statusCode, string state, string title, string? email, string? token)
+        private ViewResult PasswordResetPage(int statusCode, string state, string title)
         {
             Response.StatusCode = statusCode;
+            Response.Headers.CacheControl = "no-store, no-cache, max-age=0";
+            Response.Headers["Referrer-Policy"] = "no-referrer";
             ViewData["State"] = state;
             ViewData["Title"] = title;
-            ViewData["Email"] = email ?? string.Empty;
-            ViewData["Token"] = token ?? string.Empty;
             return View("~/Views/Home/PasswordReset.cshtml");
         }
 
