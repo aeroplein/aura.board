@@ -31,6 +31,14 @@ namespace DigitalVisionBoard.Services
         Expired
     }
 
+    public class EmailVerificationRequiredException : InvalidOperationException
+    {
+        public EmailVerificationRequiredException()
+            : base("Please verify your email address before signing in.")
+        {
+        }
+    }
+
     public class EmailVerificationDeliveryException : InvalidOperationException
     {
         public EmailVerificationDeliveryException(string message, Exception? innerException = null)
@@ -122,7 +130,7 @@ namespace DigitalVisionBoard.Services
             return new RegistrationResponse(
                 user.Email,
                 true,
-                "Account created. We sent an email confirmation to your address.");
+                "Account created. Check your email and verify your address before signing in.");
         }
 
         public async Task<AuthResponse?> LoginAsync(LoginRequest request)
@@ -137,6 +145,11 @@ namespace DigitalVisionBoard.Services
             if (user == null || !VerifyPassword(request.Password, user, out var needsRehash))
             {
                 return null;
+            }
+
+            if (!user.IsEmailVerified)
+            {
+                throw new EmailVerificationRequiredException();
             }
 
             if (needsRehash)
@@ -235,13 +248,20 @@ namespace DigitalVisionBoard.Services
                 return;
             }
 
-            user.PasswordResetToken = await GenerateUniquePasswordResetTokenAsync();
+            if (!string.IsNullOrWhiteSpace(user.PasswordResetTokenHash) &&
+                user.PasswordResetExpires.HasValue && user.PasswordResetExpires.Value > DateTime.UtcNow)
+            {
+                return;
+            }
+
+            var resetToken = await GenerateUniquePasswordResetTokenAsync();
+            user.PasswordResetTokenHash = HashResetToken(resetToken);
             user.PasswordResetExpires = DateTime.UtcNow.Add(PasswordResetTokenLifetime);
             await _context.SaveChangesAsync();
 
             try
             {
-                await SendPasswordResetEmailAsync(user);
+                await SendPasswordResetEmailAsync(user, resetToken);
             }
             catch (Exception ex)
             {
@@ -251,19 +271,20 @@ namespace DigitalVisionBoard.Services
 
         public async Task<PasswordResetResult> ResetPasswordAsync(ResetPasswordRequest request)
         {
-            if (!StrictEmailValidator.IsValid(request.Email) || string.IsNullOrWhiteSpace(request.Token))
+            if (string.IsNullOrWhiteSpace(request.Token))
             {
                 return PasswordResetResult.MissingParameters;
             }
 
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == NormalizeEmail(request.Email));
+            var tokenHash = HashResetToken(request.Token.Trim());
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.PasswordResetTokenHash == tokenHash);
             if (user == null)
             {
                 return PasswordResetResult.UserNotFound;
             }
 
-            if (string.IsNullOrWhiteSpace(user.PasswordResetToken) ||
-                !FixedTimeEquals(user.PasswordResetToken, request.Token.Trim()))
+            if (string.IsNullOrWhiteSpace(user.PasswordResetTokenHash) ||
+                !FixedTimeEquals(user.PasswordResetTokenHash, tokenHash))
             {
                 return PasswordResetResult.InvalidToken;
             }
@@ -276,8 +297,9 @@ namespace DigitalVisionBoard.Services
             var (salt, passwordHash) = HashPassword(request.Password);
             user.Salt = salt;
             user.PasswordHash = passwordHash;
-            user.PasswordResetToken = null;
+            user.PasswordResetTokenHash = null;
             user.PasswordResetExpires = null;
+            user.SessionVersion++;
             await _context.SaveChangesAsync();
 
             return PasswordResetResult.Success;
@@ -290,8 +312,14 @@ namespace DigitalVisionBoard.Services
                 return null;
             }
 
-            var userId = ValidateJwtAndGetUserId(token.Trim());
-            return userId.HasValue ? await _context.Users.FindAsync(userId.Value) : null;
+            var session = ValidateJwtAndGetSession(token.Trim());
+            if (!session.HasValue)
+            {
+                return null;
+            }
+
+            var user = await _context.Users.FindAsync(session.Value.UserId);
+            return user != null && user.SessionVersion == session.Value.SessionVersion ? user : null;
         }
 
         private AuthResponse CreateAuthResponse(User user)
@@ -318,7 +346,8 @@ namespace DigitalVisionBoard.Services
                 email = user.Email,
                 name = user.Name,
                 iat = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
-                exp = new DateTimeOffset(expiresAt).ToUnixTimeSeconds()
+                exp = new DateTimeOffset(expiresAt).ToUnixTimeSeconds(),
+                sv = user.SessionVersion
             }));
 
             var unsignedToken = $"{header}.{payload}";
@@ -326,7 +355,7 @@ namespace DigitalVisionBoard.Services
             return $"{unsignedToken}.{signature}";
         }
 
-        private Guid? ValidateJwtAndGetUserId(string token)
+        private (Guid UserId, int SessionVersion)? ValidateJwtAndGetSession(string token)
         {
             var parts = token.Split('.');
             if (parts.Length != 3)
@@ -359,7 +388,13 @@ namespace DigitalVisionBoard.Services
                     return null;
                 }
 
-                return userId;
+                if (!root.TryGetProperty("sv", out var sessionVersionElement) ||
+                    !sessionVersionElement.TryGetInt32(out var sessionVersion) || sessionVersion < 0)
+                {
+                    return null;
+                }
+
+                return (userId, sessionVersion);
             }
             catch (JsonException)
             {
@@ -433,14 +468,14 @@ namespace DigitalVisionBoard.Services
             }
         }
 
-        private async Task SendPasswordResetEmailAsync(User user)
+        private async Task SendPasswordResetEmailAsync(User user, string resetToken)
         {
-            if (string.IsNullOrWhiteSpace(user.PasswordResetToken))
+            if (string.IsNullOrWhiteSpace(resetToken))
             {
                 return;
             }
 
-            var resetUrl = BuildPasswordResetUrl(user.Email, user.PasswordResetToken);
+            var resetUrl = BuildPasswordResetUrl(resetToken);
             var subject = "Reset your Digital Vision Board password";
             var encodedName = WebUtility.HtmlEncode(user.Name);
             var encodedUrl = WebUtility.HtmlEncode(resetUrl);
@@ -463,13 +498,14 @@ namespace DigitalVisionBoard.Services
             return $"{baseUrl}/api/auth/verify-email?email={Uri.EscapeDataString(email)}&token={Uri.EscapeDataString(token)}";
         }
 
-        private string BuildPasswordResetUrl(string email, string token)
+        private string BuildPasswordResetUrl(string token)
         {
             var baseUrl = string.IsNullOrWhiteSpace(_mailSettings.AppBaseUrl)
                 ? "http://localhost:5000"
                 : _mailSettings.AppBaseUrl.TrimEnd('/');
 
-            return $"{baseUrl}/api/auth/reset-password?email={Uri.EscapeDataString(email)}&token={Uri.EscapeDataString(token)}";
+            // A URL fragment is never sent in HTTP requests, proxy logs, or Referer headers.
+            return $"{baseUrl}/api/auth/reset-password#token={Uri.EscapeDataString(token)}";
         }
 
         private static string GenerateEmailVerificationToken()
@@ -496,13 +532,19 @@ namespace DigitalVisionBoard.Services
             for (var attempt = 0; attempt < 5; attempt++)
             {
                 var token = GenerateEmailVerificationToken();
-                if (!await _context.Users.AnyAsync(u => u.PasswordResetToken == token))
+                var tokenHash = HashResetToken(token);
+                if (!await _context.Users.AnyAsync(u => u.PasswordResetTokenHash == tokenHash))
                 {
                     return token;
                 }
             }
 
             throw new InvalidOperationException("Could not generate a unique password reset token.");
+        }
+
+        private static string HashResetToken(string token)
+        {
+            return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(token))).ToLowerInvariant();
         }
 
         private static bool VerifyPassword(string password, User user, out bool needsRehash)

@@ -254,9 +254,12 @@ namespace DigitalVisionBoard.Migrations
                     b.Property<DateTime?>("PasswordResetExpires")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("PasswordResetToken")
+                    b.Property<string>("PasswordResetTokenHash")
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)");
+
+                    b.Property<int>("SessionVersion")
+                        .HasColumnType("integer");
 
                     b.Property<string>("Salt")
                         .IsRequired()
@@ -275,7 +278,7 @@ namespace DigitalVisionBoard.Migrations
                     b.HasIndex("EmailVerificationToken")
                         .IsUnique();
 
-                    b.HasIndex("PasswordResetToken")
+                    b.HasIndex("PasswordResetTokenHash")
                         .IsUnique();
 
                     b.HasIndex("Username")

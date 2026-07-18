@@ -23,7 +23,6 @@ namespace DigitalVisionBoard.Models
     );
 
     public record ResetPasswordRequest(
-        [param: Required, StrictEmailAddress, StringLength(254)] string Email,
         [param: Required, StringLength(128)] string Token,
         [param: Required, MinLength(8), StringLength(128)] string Password
     );
