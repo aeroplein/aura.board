@@ -718,6 +718,7 @@ function refreshStudioDisplay() {
     cardEl.style.top = `${renderedPosition.topPercent.toFixed(2)}%`;
     cardEl.style.width = `${renderedSize.width}px`;
     cardEl.style.minHeight = `${renderedSize.height}px`;
+    cardEl.style.height = `${renderedSize.height}px`;
     cardEl.style.zIndex = it.zIndex || 10;
     cardEl.setAttribute('data-id', it.id);
 
@@ -808,12 +809,30 @@ function refreshStudioDisplay() {
           </div>
         </div>
       </div>
-      <div class="card-resize-handle" style="position: absolute; right: 6px; bottom: 6px; z-index: 30; cursor: se-resize; opacity: 0.6; transition: opacity 0.2s;">
+      <button type="button" class="card-resize-handle card-resize-handle-nw" data-resize-anchor="nw" aria-label="Resize ${safeTitle} from top left">
         <svg width="12" height="12" viewBox="0 0 12 12" style="display: block;">
           <line x1="10" y1="2" x2="2" y2="10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
           <line x1="10" y1="6" x2="6" y2="10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
         </svg>
-      </div>
+      </button>
+      <button type="button" class="card-resize-handle card-resize-handle-ne" data-resize-anchor="ne" aria-label="Resize ${safeTitle} from top right">
+        <svg width="12" height="12" viewBox="0 0 12 12" style="display: block;">
+          <line x1="10" y1="2" x2="2" y2="10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="10" y1="6" x2="6" y2="10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+      </button>
+      <button type="button" class="card-resize-handle card-resize-handle-sw" data-resize-anchor="sw" aria-label="Resize ${safeTitle} from bottom left">
+        <svg width="12" height="12" viewBox="0 0 12 12" style="display: block;">
+          <line x1="10" y1="2" x2="2" y2="10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="10" y1="6" x2="6" y2="10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+      </button>
+      <button type="button" class="card-resize-handle card-resize-handle-se" data-resize-anchor="se" aria-label="Resize ${safeTitle} from bottom right">
+        <svg width="12" height="12" viewBox="0 0 12 12" style="display: block;">
+          <line x1="10" y1="2" x2="2" y2="10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="10" y1="6" x2="6" y2="10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+      </button>
     `;
 
     canvasDraggableStage.appendChild(cardEl);
@@ -1103,8 +1122,8 @@ function updateBoardItemPosition(itemId, px, py) {
 
 function attachCardResizeEvents(el) {
   const container = document.getElementById('canvas-area-wrapper');
-  const handle = el.querySelector('.card-resize-handle');
-  if (!handle) return;
+  const handles = el.querySelectorAll('.card-resize-handle');
+  if (!handles.length) return;
 
   let isResizing = false;
   let resizeStartX = 0;
@@ -1113,10 +1132,13 @@ function attachCardResizeEvents(el) {
   let cardStartHeight = 0;
   let cardStartLeft = 0;
   let cardStartTop = 0;
+  let resizeAnchor = 'se';
   let itemId = el.getAttribute('data-id');
 
-  handle.addEventListener('mousedown', resizeStart);
-  handle.addEventListener('touchstart', resizeStart, { passive: false });
+  handles.forEach(handle => {
+    handle.addEventListener('mousedown', resizeStart);
+    handle.addEventListener('touchstart', resizeStart, { passive: false });
+  });
 
   function resizeStart(e) {
     e.stopPropagation();
@@ -1124,6 +1146,7 @@ function attachCardResizeEvents(el) {
 
     isResizing = true;
     itemId = el.getAttribute('data-id');
+    resizeAnchor = e.currentTarget.dataset.resizeAnchor || 'se';
 
     activeCanvasOffsetWidth = container.offsetWidth;
     activeCanvasOffsetHeight = container.offsetHeight;
@@ -1150,6 +1173,7 @@ function attachCardResizeEvents(el) {
     document.addEventListener('mouseup', resizeEnd);
     document.addEventListener('touchmove', resizeMove, { passive: false });
     document.addEventListener('touchend', resizeEnd);
+    document.addEventListener('touchcancel', resizeEnd);
   }
 
   function resizeMove(e) {
@@ -1162,31 +1186,44 @@ function attachCardResizeEvents(el) {
     const dx = clientX - resizeStartX;
     const dy = clientY - resizeStartY;
 
-    let newWidth = cardStartWidth + dx;
-    let newHeight = cardStartHeight + dy;
-
-    // Use layout offsets instead of transformed bounds so tilt/scale does not make the card drift while resizing.
-    const leftPx = cardStartLeft;
-    const topPx = cardStartTop;
-
-    // Boundary constraints: Card cannot exceed canvas boundaries while keeping its anchored position.
-    let maxWidth = activeCanvasOffsetWidth - leftPx - CANVAS_EDGE_GAP;
-    let maxHeight = activeCanvasOffsetHeight - topPx - CANVAS_EDGE_GAP;
-
-    // Max limits: absolute canvas sizes
-    maxWidth = Math.min(maxWidth, activeCanvasOffsetWidth);
-    maxHeight = Math.min(maxHeight, activeCanvasOffsetHeight);
-
-    // Min limits (card shouldn't shrink too small)
+    // Keep the opposite corner fixed and clamp both edges inside the canvas.
     const cardUnits = getResponsiveCardUnits(activeCanvasOffsetWidth);
     const scale = cardUnits.width / CARD_WIDTH_UNIT;
-    const absoluteMinWidth = Math.min(Math.max(84, 120 * scale), maxWidth);
-    const absoluteMinHeight = Math.min(Math.max(58, 80 * scale), maxHeight);
+    const nominalMinWidth = Math.max(84, 120 * scale);
+    const nominalMinHeight = Math.max(58, 80 * scale);
+    const rightEdge = cardStartLeft + cardStartWidth;
+    const bottomEdge = cardStartTop + cardStartHeight;
+    const resizesFromLeft = resizeAnchor.endsWith('w');
+    const resizesFromTop = resizeAnchor.startsWith('n');
 
-    newWidth = Math.max(absoluteMinWidth, Math.min(newWidth, maxWidth));
-    newHeight = Math.max(absoluteMinHeight, Math.min(newHeight, maxHeight));
+    let newLeft = cardStartLeft;
+    let newTop = cardStartTop;
+    let newWidth;
+    let newHeight;
+
+    if (resizesFromLeft) {
+      const maxLeft = rightEdge - Math.min(nominalMinWidth, rightEdge - CANVAS_EDGE_GAP);
+      newLeft = Math.max(CANVAS_EDGE_GAP, Math.min(cardStartLeft + dx, maxLeft));
+      newWidth = rightEdge - newLeft;
+    } else {
+      const maxWidth = Math.max(1, activeCanvasOffsetWidth - cardStartLeft - CANVAS_EDGE_GAP);
+      const minWidth = Math.min(nominalMinWidth, maxWidth);
+      newWidth = Math.max(minWidth, Math.min(cardStartWidth + dx, maxWidth));
+    }
+
+    if (resizesFromTop) {
+      const maxTop = bottomEdge - Math.min(nominalMinHeight, bottomEdge - CANVAS_EDGE_GAP);
+      newTop = Math.max(CANVAS_EDGE_GAP, Math.min(cardStartTop + dy, maxTop));
+      newHeight = bottomEdge - newTop;
+    } else {
+      const maxHeight = Math.max(1, activeCanvasOffsetHeight - cardStartTop - CANVAS_EDGE_GAP);
+      const minHeight = Math.min(nominalMinHeight, maxHeight);
+      newHeight = Math.max(minHeight, Math.min(cardStartHeight + dy, maxHeight));
+    }
 
     // Update style dynamically
+    el.style.left = `${((newLeft / activeCanvasOffsetWidth) * 100).toFixed(2)}%`;
+    el.style.top = `${((newTop / activeCanvasOffsetHeight) * 100).toFixed(2)}%`;
     el.style.width = `${newWidth}px`;
     el.style.minHeight = `${newHeight}px`;
     el.style.height = `${newHeight}px`;
@@ -1208,7 +1245,10 @@ function attachCardResizeEvents(el) {
       const dbWidth = Math.round(el.offsetWidth / cardUnits.width);
       const dbHeight = Math.round(el.offsetHeight / cardUnits.height);
 
-      updateBoardItemSize(itemId, dbWidth, dbHeight);
+      updateBoardItemSize(itemId, dbWidth, dbHeight, {
+        x: parseFloat(el.style.left),
+        y: parseFloat(el.style.top)
+      });
 
       // Snap the visual size text
       const sizeIndicator = el.querySelector('.card-size-indicator');
@@ -1222,15 +1262,20 @@ function attachCardResizeEvents(el) {
     document.removeEventListener('mouseup', resizeEnd);
     document.removeEventListener('touchmove', resizeMove);
     document.removeEventListener('touchend', resizeEnd);
+    document.removeEventListener('touchcancel', resizeEnd);
     el.classList.remove('is-resizing');
   }
 }
 
-function updateBoardItemSize(itemId, width, height) {
+function updateBoardItemSize(itemId, width, height, position = null) {
   const bIndex = boards.findIndex(b => b.id === currentBoardId);
   if (bIndex !== -1) {
     const itemIndex = boards[bIndex].items.findIndex(it => it.id === itemId);
     if (itemIndex !== -1) {
+      if (position) {
+        boards[bIndex].items[itemIndex].x = parseFloat(position.x.toFixed(1));
+        boards[bIndex].items[itemIndex].y = parseFloat(position.y.toFixed(1));
+      }
       boards[bIndex].items[itemIndex].width = width;
       boards[bIndex].items[itemIndex].height = height;
       boards[bIndex].items[itemIndex].updatedAt = new Date().toISOString();
