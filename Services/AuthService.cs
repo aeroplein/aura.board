@@ -31,6 +31,14 @@ namespace DigitalVisionBoard.Services
         Expired
     }
 
+    public class EmailVerificationRequiredException : InvalidOperationException
+    {
+        public EmailVerificationRequiredException()
+            : base("Please verify your email address before signing in.")
+        {
+        }
+    }
+
     public class EmailVerificationDeliveryException : InvalidOperationException
     {
         public EmailVerificationDeliveryException(string message, Exception? innerException = null)
@@ -122,7 +130,7 @@ namespace DigitalVisionBoard.Services
             return new RegistrationResponse(
                 user.Email,
                 true,
-                "Account created. We sent an email confirmation to your address.");
+                "Account created. Check your email and verify your address before signing in.");
         }
 
         public async Task<AuthResponse?> LoginAsync(LoginRequest request)
@@ -137,6 +145,11 @@ namespace DigitalVisionBoard.Services
             if (user == null || !VerifyPassword(request.Password, user, out var needsRehash))
             {
                 return null;
+            }
+
+            if (!user.IsEmailVerified)
+            {
+                throw new EmailVerificationRequiredException();
             }
 
             if (needsRehash)

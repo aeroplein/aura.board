@@ -75,6 +75,10 @@ namespace DigitalVisionBoard.Controllers
                 SetAuthCookie(response);
                 return Ok(response);
             }
+            catch (EmailVerificationRequiredException ex)
+            {
+                return StatusCode(StatusCodes.Status403Forbidden, new { error = ex.Message });
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Login failed.");
