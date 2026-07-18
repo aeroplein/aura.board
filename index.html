@@ -343,11 +343,11 @@
       /* Card Resize Handle Styling */
       .card-resize-handle {
         position: absolute;
-        right: 8px;
-        bottom: 8px;
-        width: 14px;
-        height: 14px;
-        cursor: se-resize;
+        width: 18px;
+        height: 18px;
+        padding: 3px;
+        border: 0;
+        background: transparent;
         z-index: 30;
         color: inherit;
         opacity: 0.5;
@@ -355,7 +355,14 @@
       }
       .card-resize-handle:hover {
         opacity: 0.9;
-        transform: scale(1.1);
+      }
+      .card-resize-handle-nw { top: 3px; left: 3px; cursor: nw-resize; transform: rotate(180deg); }
+      .card-resize-handle-ne { top: 3px; right: 3px; cursor: ne-resize; transform: rotate(-90deg); }
+      .card-resize-handle-sw { bottom: 3px; left: 3px; cursor: sw-resize; transform: rotate(90deg); }
+      .card-resize-handle-se { right: 3px; bottom: 3px; cursor: se-resize; }
+      .card-resize-handle:focus-visible {
+        outline: 2px solid rgba(94, 84, 142, 0.72);
+        outline-offset: 1px;
       }
 
       /* Canvas Grid Area — linen dot grid */
@@ -411,6 +418,8 @@
         transform-origin: center center;
         z-index: 10;
         border-radius: 1rem 1.15rem 1.05rem 1.1rem;
+        box-sizing: border-box;
+        overflow: hidden;
       }
       .draggable-card:hover:not(:active) {
         transform: rotate(var(--card-tilt)) translateY(-1px);
