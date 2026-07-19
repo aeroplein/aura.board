@@ -76,6 +76,7 @@ builder.Services.AddRateLimiter(options =>
     options.AddPolicy("auth", context => CreateFixedWindowLimiter(context, permitLimit: 10, window: TimeSpan.FromMinutes(1)));
     options.AddPolicy("recovery", context => CreateFixedWindowLimiter(context, permitLimit: 5, window: TimeSpan.FromMinutes(15)));
     options.AddPolicy("provider", context => CreateFixedWindowLimiter(context, permitLimit: 20, window: TimeSpan.FromMinutes(1)));
+    options.AddPolicy("admin", context => CreateFixedWindowLimiter(context, permitLimit: 30, window: TimeSpan.FromMinutes(1)));
 });
 
 // Configure Database Connection
@@ -122,6 +123,7 @@ builder.Services.PostConfigure<MailSettings>(mail =>
     }
 });
 builder.Services.AddScoped<AuthService>();
+builder.Services.AddScoped<AdminService>();
 builder.Services.AddScoped<BoardService>();
 builder.Services.AddScoped<ImageStorageService>();
 builder.Services.AddScoped<SpotifyService>();
@@ -156,6 +158,7 @@ using (var scope = app.Services.CreateScope())
         var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         context.Database.Migrate();
         var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("Startup");
+        await InitialAdminBootstrapper.TryPromoteAsync(context, builder.Configuration, logger);
         logger.LogInformation("Database migrations applied successfully.");
     }
     catch (Exception ex)

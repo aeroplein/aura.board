@@ -1,5 +1,5 @@
 export function showTab(tabId, { renderUserBoardsList, refreshStudioDisplay, renderUserSettings }) {
-  ['home', 'studio', 'gallery', 'settings', 'user-settings'].forEach(id => {
+  ['home', 'studio', 'gallery', 'settings', 'user-settings', 'admin'].forEach(id => {
     document.getElementById(`view-${id}`)?.classList.add('d-none');
     document.getElementById(`btn-tab-${id}`)?.classList.remove('bg-white', 'shadow-sm', 'text-[#9F86C0]');
   });

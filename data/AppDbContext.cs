@@ -16,6 +16,7 @@ namespace DigitalVisionBoard.Data
         public DbSet<BoardItem> BoardItems { get; set; }
         public DbSet<ImageFile> ImageFiles { get; set; }
         public DbSet<ActivityLog> ActivityLogs { get; set; }
+        public DbSet<AdminAuditLog> AdminAuditLogs { get; set; }
 
         public override int SaveChanges()
         {
@@ -58,6 +59,29 @@ namespace DigitalVisionBoard.Data
 
                 entity.Property(u => u.PasswordResetTokenHash)
                     .HasMaxLength(64);
+
+                entity.HasIndex(u => u.CreatedAt);
+            });
+
+            modelBuilder.Entity<AdminAuditLog>(entity =>
+            {
+                entity.Property(log => log.AdminEmail)
+                    .HasMaxLength(254);
+
+                entity.Property(log => log.TargetEmail)
+                    .HasMaxLength(254);
+
+                entity.Property(log => log.Action)
+                    .HasMaxLength(80);
+
+                entity.Property(log => log.Details)
+                    .HasMaxLength(500);
+
+                entity.HasIndex(log => log.Timestamp)
+                    .IsDescending(true);
+
+                entity.HasIndex(log => new { log.TargetUserId, log.Timestamp })
+                    .IsDescending(false, true);
             });
 
             modelBuilder.Entity<Board>(entity =>

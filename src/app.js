@@ -6,6 +6,7 @@ import {
   setupAuthForm as setupAuthFormFeature,
   toggleAuthMode as toggleAuthModeFeature
 } from './features/auth.js';
+import { setupAdminPanel as setupAdminPanelFeature } from './features/admin.js';
 import { setupBoardForm as setupBoardFormFeature } from './features/boardForms.js';
 import {
   fetchUserBoards as fetchUserBoardsFeature,
@@ -542,6 +543,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setupNavTriggers();
   setupAuthValidationGuard();
   setupAuthForm();
+  setupAdminPanel();
   setupBoardForm();
   setupItemForm();
   setupSettingsHandlers();
@@ -592,6 +594,17 @@ function renderUserProfileUI() {
       showTab('user-settings');
     },
     authModalObj
+  });
+
+  document.getElementById('btn-tab-admin')?.classList.toggle('d-none', !currentUser?.isAdmin);
+}
+
+function setupAdminPanel() {
+  setupAdminPanelFeature({
+    fetchWithCredentials,
+    parseJsonResponse,
+    getCurrentUser: () => currentUser,
+    showTab
   });
 }
 

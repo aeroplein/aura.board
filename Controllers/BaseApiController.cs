@@ -37,5 +37,12 @@ namespace DigitalVisionBoard.Controllers
                 ? null
                 : StatusCode(StatusCodes.Status403Forbidden, new { error = "Admin access is required." });
         }
+
+        protected IActionResult? RequireAdminMutationHeader()
+        {
+            return Request.Headers["X-Admin-Request"] == "true"
+                ? null
+                : BadRequest(new { error = "Admin mutation header is required." });
+        }
     }
 }

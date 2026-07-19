@@ -210,6 +210,7 @@ The ASP.NET app serves the built frontend from `wwwroot` when running through th
 Copy `.env.example` to `.env` for local development values. `.env` is ignored by Git and should not be committed.
 
 - `JWT_SECRET`: Required for signed auth cookies. Use at least 32 characters.
+- `INITIAL_ADMIN_EMAIL`: Optional one-time bootstrap for the first administrator. The matching account must already be verified and active; remove the variable after promotion.
 - `GEMINI_API_KEY`: Optional. Enables Gemini-generated board recommendations.
 - `APP_URL`: Optional. Used for invite links and as a fallback base URL for verification links.
 - `APP_BASE_URL`: Optional. Used for email verification links when it differs from `APP_URL`.
