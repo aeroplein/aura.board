@@ -17,6 +17,7 @@ namespace DigitalVisionBoard.Models
         public required string Title { get; set; }
         public string? Content { get; set; }
         public string? Caption { get; set; }
+        public string ImageDisplayMode { get; set; } = "card";
         public string? Color { get; set; }
         
         public double X { get; set; }

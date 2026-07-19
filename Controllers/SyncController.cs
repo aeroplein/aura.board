@@ -304,6 +304,7 @@ namespace DigitalVisionBoard.Controllers
                                 existingItem.Title = itemDto.Title;
                                 existingItem.Content = itemDto.Content;
                                 existingItem.Caption = itemDto.Caption;
+                                existingItem.ImageDisplayMode = _boardService.NormalizeImageDisplayMode(itemDto.ImageDisplayMode);
                                 existingItem.Color = itemDto.Color;
                                 existingItem.X = itemDto.X;
                                 existingItem.Y = itemDto.Y;
@@ -325,6 +326,7 @@ namespace DigitalVisionBoard.Controllers
                                     Title = itemDto.Title,
                                     Content = itemDto.Content,
                                     Caption = itemDto.Caption,
+                                    ImageDisplayMode = _boardService.NormalizeImageDisplayMode(itemDto.ImageDisplayMode),
                                     Color = itemDto.Color,
                                     X = itemDto.X,
                                     Y = itemDto.Y,
@@ -481,6 +483,7 @@ namespace DigitalVisionBoard.Controllers
                 !string.IsNullOrWhiteSpace(item.Title) &&
                 item.Title.Length <= 120 &&
                 (item.Caption == null || item.Caption.Length <= 500) &&
+                (item.ImageDisplayMode == null || item.ImageDisplayMode is "card" or "plain" or "captioned") &&
                 (item.Color == null || item.Color.Length <= 200) &&
                 item.X >= 0 && item.X <= 5000 &&
                 item.Y >= 0 && item.Y <= 5000 &&

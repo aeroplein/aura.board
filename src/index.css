@@ -405,6 +405,127 @@ body,
   outline-offset: 1px;
 }
 
+/* Image presentation modes keep the same drag, resize, edit, and layer controls without the full card chrome. */
+.draggable-card.image-display-item,
+.draggable-card.image-display-item:hover:not(:active),
+.draggable-card.image-display-item:active {
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  overflow: visible;
+}
+
+.image-display-item > .h-100,
+.image-display-item > .h-100 > div:first-child,
+.image-display-item .stage-card-body,
+.image-display-item .image-presentation-content {
+  min-height: 0;
+  height: 100%;
+  margin: 0 !important;
+}
+
+.image-display-item > .h-100 > div:first-child > div:first-child {
+  position: absolute;
+  top: 0.35rem;
+  right: 0.35rem;
+  z-index: 42;
+  border: 0 !important;
+  padding: 0 !important;
+  opacity: 0;
+  transition: opacity 0.16s ease;
+}
+
+.image-display-item > .h-100 > div:first-child > div:first-child > span,
+.image-display-item h5 {
+  display: none !important;
+}
+
+.image-display-item > .h-100 > div:last-child {
+  position: absolute;
+  right: 0.35rem;
+  bottom: 0.35rem;
+  z-index: 42;
+  width: auto !important;
+  padding: 0 !important;
+  opacity: 0;
+  transition: opacity 0.16s ease;
+}
+
+.image-display-item > .h-100 > div:last-child > div:first-child {
+  display: none !important;
+}
+
+.image-display-item:hover > .h-100 > div:first-child > div:first-child,
+.image-display-item:focus-within > .h-100 > div:first-child > div:first-child,
+.image-display-item:hover > .h-100 > div:last-child,
+.image-display-item:focus-within > .h-100 > div:last-child {
+  opacity: 1;
+}
+
+.image-display-item .stage-card-body > .image-presentation-content {
+  min-height: 0 !important;
+}
+
+.image-presentation-media {
+  min-height: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.image-presentation-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-height: none !important;
+  object-fit: cover;
+}
+
+.image-presentation-captioned {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: 0.4rem;
+}
+
+.image-presentation-captioned .image-presentation-media {
+  border-radius: 0.55rem;
+}
+
+.image-presentation-caption {
+  margin: 0;
+  padding: 0.3rem 0.5rem;
+  color: #5E548E !important;
+  background: rgba(248, 247, 255, 0.84);
+  border-radius: 0.55rem;
+  font-size: 0.64rem;
+  font-style: italic;
+  line-height: 1.3;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  backdrop-filter: blur(6px);
+}
+
+.image-display-item .card-resize-handle {
+  color: #5E548E;
+  opacity: 0;
+  filter: drop-shadow(0 1px 2px rgba(248, 247, 255, 0.95));
+}
+
+.image-display-item:hover .card-resize-handle,
+.image-display-item:focus-within .card-resize-handle,
+.image-display-item .card-resize-handle:focus-visible {
+  opacity: 0.82;
+}
+
+.dark .image-presentation-caption {
+  color: #F4F0FF !important;
+  background: rgba(30, 27, 46, 0.84);
+}
+
 @media (max-width: 1180px) {
   #studio-toolbar {
     align-items: stretch !important;
@@ -508,6 +629,12 @@ body,
     padding: 0.5rem !important;
     border-radius: 0.85rem !important;
     box-shadow: 0 16px 32px -26px rgba(94, 84, 142, 0.44) !important;
+  }
+
+  .draggable-card.image-display-item {
+    padding: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
   }
 
   .draggable-card > .h-100 {

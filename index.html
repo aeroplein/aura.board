@@ -1712,6 +1712,16 @@
               <!-- Image Upload Section (visible only when type is image) -->
               <div id="item-image-upload-wrapper" class="d-none p-3 rounded-2xl bg-[#F8F7FF] dark:bg-[#1E1B2E] border border-[#C8B6FF]/20 space-y-2 mt-2">
                 <div>
+                  <label class="form-label font-bold text-[#5E548E]/80 font-mono text-[10px] uppercase mb-1">Image Appearance</label>
+                  <select id="item-image-display-mode" class="form-select rounded-xl border-[#C8B6FF]/35 bg-white/50 text-xs py-1.5 text-[#5E548E]">
+                    <option value="card">Card — title and caption overlay</option>
+                    <option value="plain">Image only — no card or frame</option>
+                    <option value="captioned">Image + caption underneath</option>
+                  </select>
+                  <p id="item-image-display-help" class="text-[10px] text-[#9F86C0] mb-0 mt-1 leading-relaxed">Keeps the current Aura card treatment.</p>
+                </div>
+
+                <div>
                   <label class="form-label font-bold text-[#5E548E]/80 font-mono text-[10px] uppercase mb-1">Image Source</label>
                   <select id="item-image-source-mode" class="form-select rounded-xl border-[#C8B6FF]/35 bg-white/50 text-xs py-1.5 text-[#5E548E]">
                     <option value="keyword">Keyword or direct image URL</option>
@@ -1765,7 +1775,7 @@
               </div>
 
               <!-- BG Preset Color -->
-              <div>
+              <div id="item-color-wrapper">
                 <span class="block text-[10px] font-mono uppercase font-bold text-[#5E548E]/80 mb-2">Background Tint Preset:</span>
                 <div class="d-flex gap-2">
                   <label class="flex-1 text-center py-2 border rounded-xl cursor-pointer hover:bg-white text-[11px] select-none text-[#5E548E]">

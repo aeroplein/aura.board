@@ -38,6 +38,11 @@ function normalizeBoardItemType(type) {
   return ['note', 'quote', 'image', 'text', 'music'].includes(normalized) ? normalized : 'note';
 }
 
+function normalizeImageDisplayMode(mode) {
+  const normalized = String(mode || '').trim().toLowerCase();
+  return ['plain', 'captioned'].includes(normalized) ? normalized : 'card';
+}
+
 function getSpotifyTrackId(value) {
   const input = String(value || '').trim();
   const uriMatch = input.match(/^spotify:track:([A-Za-z0-9]{22})$/i);
@@ -139,6 +144,7 @@ function normalizeGeneratedItemForCanvas(item) {
     title: String(item.title || 'Generated idea').trim().slice(0, 120),
     content: String(item.content || '').trim().slice(0, 4000),
     caption: String(item.caption || '').trim().slice(0, 500),
+    imageDisplayMode: normalizedType === 'image' ? normalizeImageDisplayMode(item.imageDisplayMode) : 'card',
     color: String(item.color || '').trim().slice(0, 200),
     width: Math.min(Math.max(Number(item.width) || 25, 5), 100),
     height: Math.min(Math.max(Number(item.height) || 22, 5), 100)
@@ -701,15 +707,21 @@ function refreshStudioDisplay() {
   // Render cards absolute positions using viewport percentages scaled to bounds
   b.items.forEach(it => {
     const cardEl = document.createElement('div');
+    const imageDisplayMode = it.type === 'image' ? normalizeImageDisplayMode(it.imageDisplayMode) : 'card';
+    const usesFramelessImagePresentation = it.type === 'image' && imageDisplayMode !== 'card';
     const colorPresentation = getCardColorPresentation(it.color);
-    cardEl.className = `draggable-card glass-card p-3 flex flex-col justify-between ${colorPresentation.className}`;
+    cardEl.className = usesFramelessImagePresentation
+      ? `draggable-card image-display-item image-display-${imageDisplayMode} flex flex-col`
+      : `draggable-card glass-card p-3 flex flex-col justify-between ${colorPresentation.className}`;
     cardEl.id = `card-${it.id}`;
-    applyCardColorPresentation(cardEl, colorPresentation);
+    if (!usesFramelessImagePresentation) {
+      applyCardColorPresentation(cardEl, colorPresentation);
+    }
     let tiltHash = 0;
     const idStr = String(it.id || '');
     for (let ci = 0; ci < idStr.length; ci++) tiltHash += idStr.charCodeAt(ci);
     const cardTilt = ((tiltHash % 7) - 3) * 0.14;
-    cardEl.style.setProperty('--card-tilt', `${cardTilt}deg`);
+    cardEl.style.setProperty('--card-tilt', `${usesFramelessImagePresentation ? 0 : cardTilt}deg`);
     
     // Scale percentages to layout coordinates
     const renderedSize = getRenderedCardSize(it, canvasBounds.width, canvasBounds.height);
@@ -750,12 +762,24 @@ function refreshStudioDisplay() {
       const queryKey = revealedPayload || '';
       const imgSource = resolvedImageCache.get(queryKey) || resolveImageSource(queryKey);
       resolvedImageCache.set(queryKey, imgSource);
-      subHtml = `
-        <div class="my-1.5 relative rounded-lg overflow-hidden flex-grow min-h-0 flex flex-col justify-center items-center bg-[#C8B6FF]/10 dark:bg-white/5" style="flex-grow: 1; min-height: 80px;">
-          <img id="img-asset-${it.id}" src="${imgSource}" alt="${safeTitle}" class="w-full h-full object-cover" referrerPolicy="no-referrer" style="max-height: 100%; object-fit: cover;" ${imageDataAttributes(it.title, it.caption)} onerror="window.handleImageLoadError(this)" />
-          <div class="absolute bottom-0 inset-x-0 p-1 bg-black/45 text-[9px] text-white italic truncate text-center">${safeCaption}</div>
-        </div>
-      `;
+      const imageMarkup = `<img id="img-asset-${it.id}" src="${imgSource}" alt="${safeTitle}" class="image-presentation-img w-full h-full object-cover" referrerPolicy="no-referrer" ${imageDataAttributes(it.title, it.caption)} onerror="window.handleImageLoadError(this)" />`;
+      if (imageDisplayMode === 'plain') {
+        subHtml = `<div class="image-presentation-content image-presentation-media">${imageMarkup}</div>`;
+      } else if (imageDisplayMode === 'captioned') {
+        subHtml = `
+          <div class="image-presentation-content image-presentation-captioned">
+            <div class="image-presentation-media">${imageMarkup}</div>
+            <p class="image-presentation-caption">${it.caption ? safeCaption : safeTitle}</p>
+          </div>
+        `;
+      } else {
+        subHtml = `
+          <div class="my-1.5 relative rounded-lg overflow-hidden flex-grow min-h-0 flex flex-col justify-center items-center bg-[#C8B6FF]/10 dark:bg-white/5" style="flex-grow: 1; min-height: 80px;">
+            ${imageMarkup}
+            <div class="absolute bottom-0 inset-x-0 p-1 bg-black/45 text-[9px] text-white italic truncate text-center">${safeCaption}</div>
+          </div>
+        `;
+      }
     } else if (it.type === 'music') {
       const spotifyTrackId = getSpotifyTrackId(revealedPayload);
       subHtml = spotifyTrackId
@@ -1308,7 +1332,32 @@ function setupItemForm() {
   const labelContent = document.getElementById('item-label-content');
   const labelCaption = document.getElementById('item-label-caption');
   const extraCaptionWrap = document.getElementById('item-extra-caption-wrapper');
+  const imageDisplayModeSelect = document.getElementById('item-image-display-mode');
+  const imageDisplayHelp = document.getElementById('item-image-display-help');
+  const colorWrapper = document.getElementById('item-color-wrapper');
   const delBtn = document.getElementById('btn-delete-card');
+
+  function updateImageDisplayModeUI() {
+    const isImage = typeSelect.value === 'image';
+    const mode = isImage ? normalizeImageDisplayMode(imageDisplayModeSelect?.value) : 'card';
+    const showCaption = !isImage || mode !== 'plain';
+
+    if (isImage) {
+      extraCaptionWrap.classList.toggle('d-none', !showCaption);
+      colorWrapper?.classList.toggle('d-none', mode !== 'card');
+      if (imageDisplayHelp) {
+        imageDisplayHelp.textContent = mode === 'plain'
+          ? 'Shows only the image. The title remains available for accessibility and editing.'
+          : mode === 'captioned'
+            ? 'Shows the image with its caption underneath, without the full card chrome.'
+            : 'Keeps the current Aura card treatment.';
+      }
+    } else {
+      colorWrapper?.classList.remove('d-none');
+    }
+  }
+
+  imageDisplayModeSelect?.addEventListener('change', updateImageDisplayModeUI);
 
   // Adjust card labels matching selected type
   typeSelect.addEventListener('change', () => {
@@ -1344,6 +1393,7 @@ function setupItemForm() {
         extraCaptionWrap.classList.add('d-none');
       }
     }
+    updateImageDisplayModeUI();
   });
 
   const fileInput = document.getElementById('item-field-image-file');
@@ -1728,6 +1778,7 @@ function setupItemForm() {
     form.reset();
     document.getElementById('item-field-id').value = '';
     if (imageSourceMode) imageSourceMode.value = 'keyword';
+    if (imageDisplayModeSelect) imageDisplayModeSelect.value = 'card';
     if (pinterestUrlInput) pinterestUrlInput.value = '';
     if (spotifySearchQuery) spotifySearchQuery.value = '';
     resetSpotifySearchResults();
@@ -1766,6 +1817,9 @@ function setupItemForm() {
     const type = normalizeBoardItemType(typeSelect.value);
     let content = document.getElementById('item-field-content').value;
     const caption = document.getElementById('item-field-caption').value;
+    const imageDisplayMode = type === 'image'
+      ? normalizeImageDisplayMode(imageDisplayModeSelect?.value)
+      : 'card';
     const isSecureChecked = document.getElementById('item-field-secure').checked;
     const zAction = document.getElementById('item-field-z-index').value;
 
@@ -1835,6 +1889,7 @@ function setupItemForm() {
           type,
           content,
           caption,
+          imageDisplayMode,
           color: colorVal,
           isEncrypted: isSecureChecked,
           zIndex: finalZIndex,
@@ -1870,6 +1925,7 @@ function setupItemForm() {
         type,
         content,
         caption,
+        imageDisplayMode,
         color: colorVal,
         isEncrypted: isSecureChecked,
         zIndex: finalZIndex,
@@ -1928,6 +1984,11 @@ function openEditCardModal(item) {
 
   document.getElementById('item-field-content').value = valToDisplay;
   document.getElementById('item-field-caption').value = item.caption || '';
+  const imageDisplayModeSelect = document.getElementById('item-image-display-mode');
+  if (imageDisplayModeSelect) {
+    imageDisplayModeSelect.value = normalizeImageDisplayMode(item.imageDisplayMode);
+    imageDisplayModeSelect.dispatchEvent(new Event('change'));
+  }
   const imageSourceMode = document.getElementById('item-image-source-mode');
   const pinterestUrlInput = document.getElementById('item-field-pinterest-url');
   if (item.type === 'image' && imageSourceMode) {
@@ -2460,6 +2521,7 @@ async function injectRecommendedItem(item) {
       ? await anchorImageContentIfNeeded(normalizedItem.content)
       : normalizedItem.content,
     caption: normalizedItem.caption || '',
+    imageDisplayMode: normalizedItem.imageDisplayMode,
     color: normalizedItem.color || 'bg-white border-[#C8B6FF]/30 text-[#5E548E]',
     x: Math.round(20 + Math.random() * 40),
     y: Math.round(25 + Math.random() * 30),
@@ -2718,6 +2780,7 @@ function setupGalleryHandlers() {
           ? await anchorImageContentIfNeeded(normalizedItem.content)
           : normalizedItem.content,
         caption: normalizedItem.caption || '',
+        imageDisplayMode: normalizedItem.imageDisplayMode,
         color: normalizedItem.color || 'bg-white border-[#C8B6FF]/30 text-[#5E548E]',
         x: Math.round(15 + Math.random() * 50),
         y: Math.round(20 + Math.random() * 40),
@@ -2838,9 +2901,85 @@ function isUnsafeExportImageSource(src) {
   }
 }
 
+const exportColorStyleProperties = [
+  'background-color',
+  'background-image',
+  'color',
+  'border-top-color',
+  'border-right-color',
+  'border-bottom-color',
+  'border-left-color',
+  'outline-color',
+  'text-decoration-color',
+  'text-emphasis-color',
+  'caret-color',
+  'column-rule-color',
+  'fill',
+  'stroke',
+  'box-shadow',
+  'text-shadow'
+];
+
+function toRgbExportColor(color, context) {
+  const previousFillStyle = context.fillStyle;
+  context.clearRect(0, 0, 1, 1);
+  context.fillStyle = color;
+  context.fillRect(0, 0, 1, 1);
+
+  const [red, green, blue, alpha] = context.getImageData(0, 0, 1, 1).data;
+  context.clearRect(0, 0, 1, 1);
+  context.fillStyle = previousFillStyle;
+
+  return `rgba(${red}, ${green}, ${blue}, ${(alpha / 255).toFixed(3)})`;
+}
+
+function normalizeModernExportColors(value, context) {
+  if (!value || !/\b(?:oklch|oklab|color)\(/i.test(value)) {
+    return value;
+  }
+
+  return value.replace(/\b(?:oklch|oklab|color)\([^)]*\)/gi, color => {
+    try {
+      return toRgbExportColor(color, context);
+    } catch {
+      // Keep the original value if the browser cannot paint this color token.
+      return color;
+    }
+  });
+}
+
+function normalizeVisualExportColors(clonedDocument, clonedCanvas) {
+  const clonedWindow = clonedDocument.defaultView;
+  if (!clonedWindow) return;
+
+  const colorCanvas = clonedDocument.createElement('canvas');
+  colorCanvas.width = 1;
+  colorCanvas.height = 1;
+  const colorContext = colorCanvas.getContext('2d', { willReadFrequently: true });
+  if (!colorContext) return;
+
+  [clonedCanvas, ...clonedCanvas.querySelectorAll('*')].forEach(element => {
+    const computedStyle = clonedWindow.getComputedStyle(element);
+
+    exportColorStyleProperties.forEach(property => {
+      const value = computedStyle.getPropertyValue(property);
+      const normalizedValue = normalizeModernExportColors(value, colorContext);
+
+      if (normalizedValue !== value) {
+        element.style.setProperty(property, normalizedValue, 'important');
+      }
+    });
+  });
+}
+
 function prepareVisualExportClone(clonedDocument) {
   const clonedCanvas = clonedDocument.getElementById('canvas-area-wrapper');
   if (!clonedCanvas) return;
+
+  // Tailwind v4 emits oklch() colours, while html2canvas 1.4.1 only parses
+  // legacy RGB/HSL colour syntax. Convert the cloned export surface to RGB
+  // without changing the live board shown to the user.
+  normalizeVisualExportColors(clonedDocument, clonedCanvas);
 
   clonedCanvas.querySelectorAll('img').forEach(img => {
     const source = img.currentSrc || img.src || img.getAttribute('src') || '';

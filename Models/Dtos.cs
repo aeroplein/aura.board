@@ -56,6 +56,8 @@ namespace DigitalVisionBoard.Models
         string? Content,
         [param: StringLength(500)]
         string? Caption,
+        [param: RegularExpression("^(card|plain|captioned)$")]
+        string? ImageDisplayMode,
         [param: StringLength(200)]
         string? Color,
         [param: Range(0, 5000)]
