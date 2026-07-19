@@ -120,6 +120,9 @@ static void CheckBoardServiceNormalization()
     Assert(service.NormalizeBoardItemType("IMAGE") == "image", "Known item type should normalize.");
     Assert(service.NormalizeBoardItemType("MUSIC") == "music", "Spotify music item type should normalize.");
     Assert(service.NormalizeBoardItemType("unknown") == "note", "Unknown item type should fall back to note.");
+    Assert(service.NormalizeImageDisplayMode("PLAIN") == "plain", "Plain image mode should normalize case.");
+    Assert(service.NormalizeImageDisplayMode("captioned") == "captioned", "Captioned image mode should remain valid.");
+    Assert(service.NormalizeImageDisplayMode("unknown") == "card", "Unknown image display modes should preserve the card default.");
 }
 
 static void CheckImageUploadValidation()

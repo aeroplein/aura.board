@@ -206,6 +206,7 @@ namespace DigitalVisionBoard.Controllers
                         Title = it.Title,
                         Content = it.Content,
                         Caption = it.Caption,
+                        ImageDisplayMode = _boardService.NormalizeImageDisplayMode(it.ImageDisplayMode),
                         Color = it.Color,
                         X = it.X,
                         Y = it.Y,

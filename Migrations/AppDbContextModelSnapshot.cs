@@ -137,6 +137,13 @@ namespace DigitalVisionBoard.Migrations
                     b.Property<bool>("IsEncrypted")
                         .HasColumnType("boolean");
 
+                    b.Property<string>("ImageDisplayMode")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasDefaultValue("card");
+
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(120)
@@ -168,6 +175,8 @@ namespace DigitalVisionBoard.Migrations
 
                     b.ToTable("BoardItems", t =>
                         {
+                            t.HasCheckConstraint("CK_BoardItems_ImageDisplayMode", "\"ImageDisplayMode\" IN ('card', 'plain', 'captioned')");
+
                             t.HasCheckConstraint("CK_BoardItems_Position", "\"X\" >= 0 AND \"Y\" >= 0");
 
                             t.HasCheckConstraint("CK_BoardItems_Size", "\"Width\" > 0 AND \"Height\" > 0");

@@ -22,6 +22,7 @@ namespace DigitalVisionBoard.Services
                     it.Title,
                     it.Content,
                     it.Caption,
+                    NormalizeImageDisplayMode(it.ImageDisplayMode),
                     it.Color,
                     it.X,
                     it.Y,
@@ -55,6 +56,12 @@ namespace DigitalVisionBoard.Services
         {
             var normalized = (type ?? "").Trim().ToLowerInvariant();
             return normalized is "quote" or "note" or "image" or "text" or "music" ? normalized : "note";
+        }
+
+        public string NormalizeImageDisplayMode(string? mode)
+        {
+            var normalized = (mode ?? "").Trim().ToLowerInvariant();
+            return normalized is "plain" or "captioned" ? normalized : "card";
         }
 
         public bool HasBoardSettingsChanges(UpdateBoardRequest request)

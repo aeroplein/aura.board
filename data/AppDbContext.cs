@@ -100,12 +100,17 @@ namespace DigitalVisionBoard.Data
                 entity.Property(bi => bi.Caption)
                     .HasMaxLength(500);
 
+                entity.Property(bi => bi.ImageDisplayMode)
+                    .HasMaxLength(20)
+                    .HasDefaultValue("card");
+
                 entity.Property(bi => bi.Color)
                     .HasMaxLength(200);
 
                 entity.ToTable(t =>
                 {
                     t.HasCheckConstraint("CK_BoardItems_Type", "\"Type\" IN ('quote', 'note', 'image', 'text', 'music')");
+                    t.HasCheckConstraint("CK_BoardItems_ImageDisplayMode", "\"ImageDisplayMode\" IN ('card', 'plain', 'captioned')");
                     t.HasCheckConstraint("CK_BoardItems_Position", "\"X\" >= 0 AND \"Y\" >= 0");
                     t.HasCheckConstraint("CK_BoardItems_Size", "\"Width\" > 0 AND \"Height\" > 0");
                 });
