@@ -50,7 +50,7 @@ namespace DigitalVisionBoard.Services
     public class AuthService
     {
         public const string AuthCookieName = "vision_board_auth";
-        public static readonly TimeSpan TokenLifetime = TimeSpan.FromHours(8);
+        public static readonly TimeSpan TokenLifetime = TimeSpan.FromHours(4);
         public static readonly TimeSpan EmailVerificationTokenLifetime = TimeSpan.FromHours(24);
         public static readonly TimeSpan PasswordResetTokenLifetime = TimeSpan.FromHours(1);
 
