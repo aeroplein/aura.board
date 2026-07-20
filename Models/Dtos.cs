@@ -47,6 +47,59 @@ namespace DigitalVisionBoard.Models
         }
     }
 
+    // --- ADMINISTRATION DTOS ---
+    public record AdminDashboardResponse(
+        int TotalUsers,
+        int VerifiedUsers,
+        int PendingInvitations,
+        int SuspendedUsers,
+        int AdminUsers,
+        int TotalBoards
+    );
+
+    public record AdminUserResponse(
+        Guid Id,
+        string Email,
+        string Name,
+        string? Username,
+        bool IsEmailVerified,
+        bool InvitationPending,
+        bool IsSuspended,
+        bool IsAdmin,
+        int OwnedBoardCount,
+        DateTime CreatedAt
+    );
+
+    public record AdminUsersPageResponse(
+        IReadOnlyList<AdminUserResponse> Users,
+        int Page,
+        int PageSize,
+        int TotalCount,
+        int TotalPages
+    );
+
+    public record AdminAuditLogResponse(
+        Guid Id,
+        string AdminEmail,
+        Guid? TargetUserId,
+        string? TargetEmail,
+        string Action,
+        string? Details,
+        bool Success,
+        DateTime Timestamp
+    );
+
+    public record AdminInviteUserRequest(
+        [param: Required, StrictEmailAddress, StringLength(254)] string Email,
+        [param: Required, StringLength(80, MinimumLength = 2)] string Name
+    );
+
+    public record AdminRoleRequest(bool IsAdmin);
+
+    public record AdminDeleteUserRequest(
+        [param: Required, StrictEmailAddress, StringLength(254)] string ConfirmationEmail
+    );
+
     // --- BOARD DTOS ---
     public record BoardItemResponse(
         [param: Required, StringLength(120)] string Id,

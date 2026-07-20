@@ -151,6 +151,114 @@ body,
   color: #BDB0F2 !important;
 }
 
+.admin-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.admin-metrics-grid article { min-width: 0; }
+
+.admin-metrics-grid span {
+  display: block;
+  color: #9F86C0;
+  font-family: monospace;
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.admin-metrics-grid strong {
+  display: block;
+  margin-top: 0.2rem;
+  color: #5E548E;
+  font-size: 1.5rem;
+}
+
+.admin-users-table th {
+  color: #9F86C0;
+  font-family: monospace;
+  font-size: 0.62rem;
+  text-transform: uppercase;
+}
+
+.admin-users-table td {
+  color: #5E548E;
+  font-size: 0.72rem;
+}
+
+.admin-user-email {
+  color: #9F86C0;
+  font-size: 0.62rem;
+  overflow-wrap: anywhere;
+}
+
+.admin-status-badge {
+  display: inline-flex;
+  align-items: center;
+  margin: 0.1rem;
+  padding: 0.18rem 0.45rem;
+  border-radius: 999px;
+  background: rgba(200, 182, 255, 0.18);
+  color: #5E548E;
+  font-size: 0.58rem;
+  font-weight: 800;
+}
+
+.admin-status-badge.is-danger { background: rgba(251, 113, 133, 0.14); color: #BE123C; }
+.admin-status-badge.is-success { background: rgba(52, 211, 153, 0.14); color: #047857; }
+
+.admin-action-button {
+  margin: 0.12rem;
+  padding: 0.3rem 0.5rem;
+  border: 1px solid rgba(200, 182, 255, 0.5);
+  border-radius: 0.55rem;
+  background: rgba(255, 255, 255, 0.65);
+  color: #5E548E;
+  font-size: 0.62rem;
+  font-weight: 700;
+}
+
+.admin-action-button.is-danger { border-color: rgba(251, 113, 133, 0.35); color: #BE123C; }
+
+.admin-audit-list { display: grid; gap: 0.55rem; }
+
+#admin-feedback.state-panel-success {
+  border-color: rgba(52, 211, 153, 0.4);
+  background: rgba(236, 253, 245, 0.86);
+  color: #047857;
+}
+
+#admin-feedback.state-panel-error {
+  border-color: rgba(251, 113, 133, 0.4);
+  background: rgba(255, 241, 242, 0.9);
+  color: #BE123C;
+}
+
+.admin-audit-entry {
+  padding: 0.7rem 0.8rem;
+  border: 1px solid rgba(200, 182, 255, 0.28);
+  border-radius: 0.8rem;
+  background: rgba(255, 255, 255, 0.45);
+  color: #5E548E;
+  font-size: 0.7rem;
+}
+
+.dark .admin-metrics-grid strong,
+.dark .admin-users-table td,
+.dark .admin-audit-entry { color: #F4F0FF; }
+
+.dark .admin-action-button,
+.dark .admin-audit-entry { background: rgba(30, 27, 46, 0.72); }
+
+@media (max-width: 1100px) {
+  .admin-metrics-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@media (max-width: 640px) {
+  .admin-metrics-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
 .dark footer {
   background: rgba(22, 19, 34, 0.88) !important;
   border-top-color: rgba(200, 182, 255, 0.22) !important;

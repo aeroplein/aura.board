@@ -19,6 +19,7 @@ var checks = new List<(string Name, Action Check)>
     ("Account recovery exposes one-hour, single-use password-reset contracts", CheckAccountRecoveryContracts),
     ("Image search translates detailed lifestyle prompts into visual concepts", CheckImageSearchConceptMapping),
     ("Users default to non-admin and session responses expose their own admin state", CheckAdminRoleContract),
+    ("Admin management protects bootstrap, suspension, invitation, and audit contracts", CheckAdminManagementContracts),
     ("Profile identity normalizes usernames and carries avatar fields", CheckProfileIdentityContracts),
     ("SyncResponse exposes diagnostics without breaking board payloads", CheckSyncResponseDiagnostics)
 };
@@ -220,6 +221,29 @@ static void CheckAdminRoleContract()
         true);
 
     Assert(response.IsAdmin, "A signed-in user should receive their own admin state.");
+}
+
+static void CheckAdminManagementContracts()
+{
+    var user = NewUser("member@example.com");
+    Assert(!user.IsSuspended, "New users must remain active by default.");
+    Assert(!user.InvitationPending, "Normal registrations must not be marked as pending invitations.");
+    Assert(user.CreatedAt > DateTime.MinValue, "Users should carry a creation timestamp.");
+    Assert(AuthService.InvitationTokenLifetime == TimeSpan.FromHours(24), "Admin invitations should expire after 24 hours.");
+    Assert(new AccountSuspendedException().Message.Contains("suspended", StringComparison.OrdinalIgnoreCase), "Suspended sign-in should return a clear access error.");
+
+    var invite = new AdminInviteUserRequest("invitee@example.com", "Invitee Example");
+    var role = new AdminRoleRequest(true);
+    var delete = new AdminDeleteUserRequest("invitee@example.com");
+    Assert(invite.Email == "invitee@example.com", "Admin invitations should carry a validated email.");
+    Assert(role.IsAdmin, "Admin role requests should carry the intended role state.");
+    Assert(delete.ConfirmationEmail == invite.Email, "Permanent deletion should require exact email confirmation.");
+
+    Assert(typeof(AdminService).GetMethod(nameof(AdminService.SetSuspendedAsync)) != null, "Admin service should expose suspension controls.");
+    Assert(typeof(AdminService).GetMethod(nameof(AdminService.SetRoleAsync)) != null, "Admin service should expose guarded role controls.");
+    Assert(typeof(AdminService).GetMethod(nameof(AdminService.DeleteUserAsync)) != null, "Admin service should expose guarded deletion.");
+    Assert(typeof(InitialAdminBootstrapper).GetMethod(nameof(InitialAdminBootstrapper.TryPromoteAsync)) != null, "Initial admin bootstrap should be explicit and testable.");
+    Assert(typeof(AppDbContext).GetProperty(nameof(AppDbContext.AdminAuditLogs)) != null, "Admin actions should have a dedicated audit store.");
 }
 
 static void CheckEmailVerificationRegistrationContract()

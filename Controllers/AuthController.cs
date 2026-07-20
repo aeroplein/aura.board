@@ -79,6 +79,10 @@ namespace DigitalVisionBoard.Controllers
             {
                 return StatusCode(StatusCodes.Status403Forbidden, new { error = ex.Message });
             }
+            catch (AccountSuspendedException ex)
+            {
+                return StatusCode(StatusCodes.Status403Forbidden, new { error = ex.Message });
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Login failed.");

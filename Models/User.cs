@@ -14,6 +14,8 @@ namespace DigitalVisionBoard.Models
         public required string PasswordHash { get; set; }
         public required string Salt { get; set; }
         public bool IsAdmin { get; set; } = false;
+        public bool IsSuspended { get; set; } = false;
+        public bool InvitationPending { get; set; } = false;
         public bool IsEmailVerified { get; set; } = false;
         public string? EmailVerificationToken { get; set; }
         public DateTime? EmailVerificationExpires { get; set; }
@@ -22,6 +24,7 @@ namespace DigitalVisionBoard.Models
         public DateTime? PasswordResetExpires { get; set; }
         // Invalidates every previously issued JWT when incremented.
         public int SessionVersion { get; set; } = 0;
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         // User Preferences stored flat in the same table
         public bool DarkMode { get; set; } = false;

@@ -47,12 +47,21 @@ namespace DigitalVisionBoard.Services
         }
     }
 
+    public class AccountSuspendedException : InvalidOperationException
+    {
+        public AccountSuspendedException()
+            : base("This account is suspended. Contact an administrator for access.")
+        {
+        }
+    }
+
     public class AuthService
     {
         public const string AuthCookieName = "vision_board_auth";
         public static readonly TimeSpan TokenLifetime = TimeSpan.FromHours(4);
         public static readonly TimeSpan EmailVerificationTokenLifetime = TimeSpan.FromHours(24);
         public static readonly TimeSpan PasswordResetTokenLifetime = TimeSpan.FromHours(1);
+        public static readonly TimeSpan InvitationTokenLifetime = TimeSpan.FromHours(24);
 
         private const int LegacyIterations = 1_000;
         private const int CurrentIterations = 210_000;
@@ -133,6 +142,46 @@ namespace DigitalVisionBoard.Services
                 "Account created. Check your email and verify your address before signing in.");
         }
 
+        public async Task<User> InviteUserAsync(AdminInviteUserRequest request)
+        {
+            var email = NormalizeEmail(request.Email);
+            var emailValidation = await _advancedEmailValidator.ValidateAsync(email);
+            if (!emailValidation.IsValid)
+            {
+                throw new AdvancedEmailValidationException(emailValidation.Error ?? "Email address is not allowed.");
+            }
+
+            if (await _context.Users.AnyAsync(user => user.Email == email))
+            {
+                throw new InvalidOperationException("An account with this email already exists.");
+            }
+
+            var temporarySecret = Convert.ToBase64String(RandomNumberGenerator.GetBytes(48));
+            var (salt, passwordHash) = HashPassword(temporarySecret);
+            var invitationToken = await GenerateUniquePasswordResetTokenAsync();
+            var user = new User
+            {
+                Email = email,
+                Name = request.Name.Trim(),
+                PasswordHash = passwordHash,
+                Salt = salt,
+                InvitationPending = true,
+                PasswordResetTokenHash = HashResetToken(invitationToken),
+                PasswordResetExpires = DateTime.UtcNow.Add(InvitationTokenLifetime)
+            };
+
+            await using var transaction = await _context.Database.BeginTransactionAsync();
+            _context.Users.Add(user);
+            await _context.SaveChangesAsync();
+
+            _context.Boards.Add(CreateDefaultUserBoard(user.Id));
+            await _context.SaveChangesAsync();
+
+            await SendPasswordResetEmailAsync(user, invitationToken);
+            await transaction.CommitAsync();
+            return user;
+        }
+
         public async Task<AuthResponse?> LoginAsync(LoginRequest request)
         {
             var email = NormalizeEmail(request.Email);
@@ -145,6 +194,11 @@ namespace DigitalVisionBoard.Services
             if (user == null || !VerifyPassword(request.Password, user, out var needsRehash))
             {
                 return null;
+            }
+
+            if (user.IsSuspended)
+            {
+                throw new AccountSuspendedException();
             }
 
             if (!user.IsEmailVerified)
@@ -299,6 +353,13 @@ namespace DigitalVisionBoard.Services
             user.PasswordHash = passwordHash;
             user.PasswordResetTokenHash = null;
             user.PasswordResetExpires = null;
+            if (user.InvitationPending)
+            {
+                user.InvitationPending = false;
+                user.IsEmailVerified = true;
+                user.EmailVerificationToken = null;
+                user.EmailVerificationExpires = null;
+            }
             user.SessionVersion++;
             await _context.SaveChangesAsync();
 
@@ -319,7 +380,7 @@ namespace DigitalVisionBoard.Services
             }
 
             var user = await _context.Users.FindAsync(session.Value.UserId);
-            return user != null && user.SessionVersion == session.Value.SessionVersion ? user : null;
+            return user != null && !user.IsSuspended && user.SessionVersion == session.Value.SessionVersion ? user : null;
         }
 
         private AuthResponse CreateAuthResponse(User user)
@@ -476,15 +537,25 @@ namespace DigitalVisionBoard.Services
             }
 
             var resetUrl = BuildPasswordResetUrl(resetToken);
-            var subject = "Reset your Digital Vision Board password";
+            var isInvitation = user.InvitationPending;
+            var subject = isInvitation
+                ? "Complete your Aura Board account"
+                : "Reset your Digital Vision Board password";
             var encodedName = WebUtility.HtmlEncode(user.Name);
             var encodedUrl = WebUtility.HtmlEncode(resetUrl);
-            var body = $"""
-                <p>Hello {encodedName},</p>
-                <p>We received a request to reset your Digital Vision Board password.</p>
-                <p><a href="{encodedUrl}">Reset your password</a></p>
-                <p>This link expires in one hour. If you did not request a reset, you can ignore this email.</p>
-                """;
+            var body = isInvitation
+                ? $"""
+                    <p>Hello {encodedName},</p>
+                    <p>An Aura Board administrator invited you to create an account.</p>
+                    <p><a href="{encodedUrl}">Choose your password and activate your account</a></p>
+                    <p>This secure invitation link expires automatically. If you were not expecting it, you can ignore this email.</p>
+                    """
+                : $"""
+                    <p>Hello {encodedName},</p>
+                    <p>We received a request to reset your Digital Vision Board password.</p>
+                    <p><a href="{encodedUrl}">Reset your password</a></p>
+                    <p>This link expires in one hour. If you did not request a reset, you can ignore this email.</p>
+                    """;
 
             await _emailService.SendEmailAsync(user.Email, subject, body);
         }
@@ -576,7 +647,7 @@ namespace DigitalVisionBoard.Services
             return Convert.ToHexString(pbkdf2.GetBytes(HashBytesLength)).ToLowerInvariant();
         }
 
-        private static string NormalizeEmail(string email)
+        public static string NormalizeEmail(string email)
         {
             return email.Trim().ToLowerInvariant();
         }
