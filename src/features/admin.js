@@ -1,4 +1,5 @@
 import { escapeHtml } from '../utils/html.js';
+import { showConfirmDialog } from '../ui/confirmDialog.js';
 
 export function setupAdminPanel({ fetchWithCredentials, parseJsonResponse, getCurrentUser, showTab }) {
   let currentPage = 1;
@@ -61,16 +62,43 @@ export function setupAdminPanel({ fetchWithCredentials, parseJsonResponse, getCu
     let options = { method: 'POST' };
 
     if (action === 'delete') {
-      const confirmationEmail = window.prompt(`Permanent deletion removes owned boards and unshared uploads. Type ${userEmail} to continue:`);
-      if (confirmationEmail === null) return;
+      const confirmed = await showConfirmDialog({
+        eyebrow: 'Permanent account action',
+        title: 'Delete this user?',
+        message: 'This permanently removes the account, owned boards, and unshared uploads. This action cannot be undone.',
+        confirmText: 'Delete user',
+        cancelText: 'Keep user',
+        requiredText: userEmail,
+        inputLabel: 'Type this email to confirm'
+      });
+      if (!confirmed) return;
       url = `${url}`;
-      options = { method: 'DELETE', body: JSON.stringify({ confirmationEmail }) };
+      options = { method: 'DELETE', body: JSON.stringify({ confirmationEmail: userEmail }) };
     } else if (action === 'suspend' || action === 'reactivate') {
-      if (!window.confirm(`${action === 'suspend' ? 'Suspend' : 'Reactivate'} ${userEmail}?`)) return;
+      const isSuspending = action === 'suspend';
+      const confirmed = await showConfirmDialog({
+        eyebrow: isSuspending ? 'Account access' : 'Restore access',
+        title: isSuspending ? 'Suspend this user?' : 'Reactivate this user?',
+        message: isSuspending
+          ? `${userEmail} will be signed out and unable to access their account until reactivated.`
+          : `${userEmail} will be able to sign in and access their account again.`,
+        confirmText: isSuspending ? 'Suspend user' : 'Reactivate user',
+        cancelText: 'Cancel',
+        tone: isSuspending ? 'danger' : 'neutral'
+      });
+      if (!confirmed) return;
       url = `${url}/${action}`;
     } else if (action === 'grant-admin' || action === 'remove-admin') {
       const isAdmin = action === 'grant-admin';
-      if (!window.confirm(`${isAdmin ? 'Grant' : 'Remove'} administrator access for ${userEmail}? Active sessions will be revoked.`)) return;
+      const confirmed = await showConfirmDialog({
+        eyebrow: 'Administrator role',
+        title: isAdmin ? 'Make this user an admin?' : 'Remove admin access?',
+        message: `${userEmail} ${isAdmin ? 'will gain access to user management and audit tools' : 'will lose access to administrative tools'}. Active sessions will be revoked.`,
+        confirmText: isAdmin ? 'Make admin' : 'Remove access',
+        cancelText: 'Cancel',
+        tone: isAdmin ? 'neutral' : 'danger'
+      });
+      if (!confirmed) return;
       url = `${url}/role`;
       options.body = JSON.stringify({ isAdmin });
     } else {
