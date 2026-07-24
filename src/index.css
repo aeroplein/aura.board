@@ -400,6 +400,44 @@ body,
   line-height: 1.55;
 }
 
+.app-confirm-field {
+  display: grid;
+  gap: 0.45rem;
+  margin-top: 1rem;
+  text-align: left;
+}
+
+.app-confirm-field label,
+.app-confirm-field span {
+  color: rgba(77, 68, 120, 0.72);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.app-confirm-field code {
+  overflow-wrap: anywhere;
+  color: #6F5AA7;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.app-confirm-field input {
+  width: 100%;
+  padding: 0.72rem 0.8rem;
+  color: #4d4478;
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(159, 134, 192, 0.5);
+  border-radius: 0.85rem;
+  outline: none;
+  transition: border-color 140ms ease, box-shadow 140ms ease;
+}
+
+.app-confirm-field input:focus {
+  border-color: #9F86C0;
+  box-shadow: 0 0 0 3px rgba(200, 182, 255, 0.32);
+}
+
 .app-confirm-actions {
   display: flex;
   justify-content: center;
@@ -428,6 +466,12 @@ body,
   box-shadow: 0 14px 28px -16px rgba(111, 90, 167, 0.88);
 }
 
+.app-confirm-confirm:disabled {
+  cursor: not-allowed;
+  opacity: 0.42;
+  box-shadow: none;
+}
+
 .dark .app-confirm-dialog {
   color: #EEE9FF;
   background: linear-gradient(145deg, rgba(31, 27, 45, 0.98), rgba(18, 16, 28, 0.96));
@@ -440,6 +484,21 @@ body,
 
 .dark .app-confirm-dialog p:last-of-type {
   color: rgba(230, 225, 255, 0.78);
+}
+
+.dark .app-confirm-field label,
+.dark .app-confirm-field span {
+  color: rgba(230, 225, 255, 0.72);
+}
+
+.dark .app-confirm-field code {
+  color: #D6C6FF;
+}
+
+.dark .app-confirm-field input {
+  color: #F4F0FF;
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(200, 182, 255, 0.28);
 }
 
 .dark .app-confirm-cancel,

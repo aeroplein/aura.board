@@ -342,11 +342,11 @@
       /* Card Resize Handle Styling */
       .card-resize-handle {
         position: absolute;
-        right: 8px;
-        bottom: 8px;
-        width: 14px;
-        height: 14px;
-        cursor: se-resize;
+        width: 18px;
+        height: 18px;
+        padding: 3px;
+        border: 0;
+        background: transparent;
         z-index: 30;
         color: inherit;
         opacity: 0.5;
@@ -354,7 +354,14 @@
       }
       .card-resize-handle:hover {
         opacity: 0.9;
-        transform: scale(1.1);
+      }
+      .card-resize-handle-nw { top: 3px; left: 3px; cursor: nw-resize; transform: rotate(180deg); }
+      .card-resize-handle-ne { top: 3px; right: 3px; cursor: ne-resize; transform: rotate(-90deg); }
+      .card-resize-handle-sw { bottom: 3px; left: 3px; cursor: sw-resize; transform: rotate(90deg); }
+      .card-resize-handle-se { right: 3px; bottom: 3px; cursor: se-resize; }
+      .card-resize-handle:focus-visible {
+        outline: 2px solid rgba(94, 84, 142, 0.72);
+        outline-offset: 1px;
       }
 
       /* Canvas Grid Area — linen dot grid */
@@ -410,6 +417,8 @@
         transform-origin: center center;
         z-index: 10;
         border-radius: 1rem 1.15rem 1.05rem 1.1rem;
+        box-sizing: border-box;
+        overflow: hidden;
       }
       .draggable-card:hover:not(:active) {
         transform: rotate(var(--card-tilt)) translateY(-1px);
@@ -1003,8 +1012,8 @@
         }
       }
     </style>
-    <script type="module" crossorigin src="/assets/index-mZ6qCp5i.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-DSV0rSt9.css">
+    <script type="module" crossorigin src="/assets/index-BUYnXp_O.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-DnNN0r10.css">
   </head>
   <body class="font-sans text-[#5E548E] dark:text-[#FFF] relative min-h-screen">
 
@@ -1048,6 +1057,9 @@
           </button>
           <button id="btn-tab-settings" type="button" class="px-3 py-2 rounded-xl text-[#5E548E] dark:text-[#B8C0FF] hover:text-[#9F86C0] font-semibold transition-all">
             <i data-lucide="settings" class="inline w-3.5 h-3.5 mr-1 align-middle"></i>Settings
+          </button>
+          <button id="btn-tab-admin" type="button" class="d-none px-3 py-2 rounded-xl text-[#5E548E] dark:text-[#B8C0FF] hover:text-[#9F86C0] font-semibold transition-all">
+            <i data-lucide="shield-check" class="inline w-3.5 h-3.5 mr-1 align-middle"></i>Admin
           </button>
         </div>
 
@@ -1495,7 +1507,88 @@
       </section>
 
       <!-- ==================================== -->
-      <!-- VIEW 4: SYSTEM SETTINGS + CRYTOGRAPHY LAB -->
+      <!-- VIEW 4: ADMIN MANAGEMENT -->
+      <!-- ==================================== -->
+      <section id="view-admin" class="space-y-6 fade-in-up d-none pb-5">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-end gap-3">
+          <div>
+            <span class="px-2.5 py-1 font-mono uppercase bg-[#5E548E] text-white rounded-full font-bold text-[9px]">Restricted workspace</span>
+            <h2 class="fs-3 font-extrabold text-[#5E548E] d-flex align-items-center gap-2 mt-2 mb-1">
+              <i data-lucide="shield-check" class="w-7 h-7 text-[#9F86C0]"></i> Admin Control Room
+            </h2>
+            <p class="text-sm text-[#5E548E]/80 mb-0">Invite accounts, control access, and review high-impact administrative actions.</p>
+          </div>
+          <button id="admin-refresh" type="button" class="px-3 py-2 rounded-xl border border-[#C8B6FF]/40 text-[#5E548E] hover:bg-white text-xs font-bold cursor-pointer d-flex align-items-center gap-1.5">
+            <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Refresh
+          </button>
+        </div>
+
+        <div id="admin-feedback" class="p-3 rounded-xl text-xs d-none" role="status"></div>
+
+        <div id="admin-metrics" class="admin-metrics-grid">
+          <article class="glass-card p-3"><span>Total users</span><strong id="admin-total-users">--</strong></article>
+          <article class="glass-card p-3"><span>Verified</span><strong id="admin-verified-users">--</strong></article>
+          <article class="glass-card p-3"><span>Pending invites</span><strong id="admin-pending-invites">--</strong></article>
+          <article class="glass-card p-3"><span>Suspended</span><strong id="admin-suspended-users">--</strong></article>
+          <article class="glass-card p-3"><span>Administrators</span><strong id="admin-admin-users">--</strong></article>
+          <article class="glass-card p-3"><span>Boards</span><strong id="admin-total-boards">--</strong></article>
+        </div>
+
+        <div class="row g-4">
+          <div class="col-lg-4">
+            <div class="glass-card p-4 h-100">
+              <h3 class="fs-6 font-bold text-[#5E548E] border-b border-[#C8B6FF]/30 pb-2 d-flex align-items-center gap-2">
+                <i data-lucide="user-plus" class="w-4 h-4"></i> Invite a user
+              </h3>
+              <p class="text-[11px] text-[#9F86C0]">The user receives a secure link and chooses their own password.</p>
+              <form id="admin-invite-form" class="space-y-3">
+                <div>
+                  <label for="admin-invite-name" class="form-label text-[10px] font-mono uppercase font-bold text-[#5E548E]">Name</label>
+                  <input id="admin-invite-name" class="form-control rounded-xl text-xs" minlength="2" maxlength="80" required />
+                </div>
+                <div>
+                  <label for="admin-invite-email" class="form-label text-[10px] font-mono uppercase font-bold text-[#5E548E]">Email</label>
+                  <input id="admin-invite-email" type="email" class="form-control rounded-xl text-xs" maxlength="254" required />
+                </div>
+                <button type="submit" class="w-full px-3 py-2 rounded-xl bg-[#5E548E] hover:bg-[#9F86C0] text-white text-xs font-bold cursor-pointer">Send secure invitation</button>
+              </form>
+            </div>
+          </div>
+
+          <div class="col-lg-8">
+            <div class="glass-card p-4 h-100">
+              <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2 border-b border-[#C8B6FF]/30 pb-3">
+                <h3 class="fs-6 font-bold text-[#5E548E] mb-0 d-flex align-items-center gap-2"><i data-lucide="users" class="w-4 h-4"></i> Users</h3>
+                <form id="admin-user-search-form" class="d-flex gap-2">
+                  <input id="admin-user-search" type="search" class="form-control rounded-xl text-xs" placeholder="Search name, email or username" maxlength="80" />
+                  <button class="px-3 py-2 rounded-xl border text-xs font-bold text-[#5E548E] cursor-pointer" type="submit">Search</button>
+                </form>
+              </div>
+              <div class="table-responsive mt-3">
+                <table class="table admin-users-table align-middle mb-0">
+                  <thead><tr><th>User</th><th>Status</th><th>Boards</th><th class="text-end">Actions</th></tr></thead>
+                  <tbody id="admin-users-body"><tr><td colspan="4" class="text-center text-[#9F86C0] py-4">Loading users...</td></tr></tbody>
+                </table>
+              </div>
+              <div class="d-flex justify-content-between align-items-center mt-3">
+                <span id="admin-users-page-label" class="text-[10px] font-mono text-[#9F86C0]">--</span>
+                <div class="d-flex gap-2">
+                  <button id="admin-users-prev" type="button" class="px-3 py-1.5 rounded-xl border text-xs text-[#5E548E] cursor-pointer">Previous</button>
+                  <button id="admin-users-next" type="button" class="px-3 py-1.5 rounded-xl border text-xs text-[#5E548E] cursor-pointer">Next</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="glass-card p-4">
+          <h3 class="fs-6 font-bold text-[#5E548E] border-b border-[#C8B6FF]/30 pb-2 d-flex align-items-center gap-2"><i data-lucide="scroll-text" class="w-4 h-4"></i> Recent admin audit</h3>
+          <div id="admin-audit-list" class="admin-audit-list"><p class="text-xs text-[#9F86C0]">Loading audit events...</p></div>
+        </div>
+      </section>
+
+      <!-- ==================================== -->
+      <!-- VIEW 5: SYSTEM SETTINGS + CRYTOGRAPHY LAB -->
       <!-- ==================================== -->
       <section id="view-settings" class="space-y-6 fade-in-up d-none pb-5">
         <div>
@@ -1704,6 +1797,16 @@
               <!-- Image Upload Section (visible only when type is image) -->
               <div id="item-image-upload-wrapper" class="d-none p-3 rounded-2xl bg-[#F8F7FF] dark:bg-[#1E1B2E] border border-[#C8B6FF]/20 space-y-2 mt-2">
                 <div>
+                  <label class="form-label font-bold text-[#5E548E]/80 font-mono text-[10px] uppercase mb-1">Image Appearance</label>
+                  <select id="item-image-display-mode" class="form-select rounded-xl border-[#C8B6FF]/35 bg-white/50 text-xs py-1.5 text-[#5E548E]">
+                    <option value="card">Card — title and caption overlay</option>
+                    <option value="plain">Image only — no card or frame</option>
+                    <option value="captioned">Image + caption underneath</option>
+                  </select>
+                  <p id="item-image-display-help" class="text-[10px] text-[#9F86C0] mb-0 mt-1 leading-relaxed">Keeps the current Aura card treatment.</p>
+                </div>
+
+                <div>
                   <label class="form-label font-bold text-[#5E548E]/80 font-mono text-[10px] uppercase mb-1">Image Source</label>
                   <select id="item-image-source-mode" class="form-select rounded-xl border-[#C8B6FF]/35 bg-white/50 text-xs py-1.5 text-[#5E548E]">
                     <option value="keyword">Keyword or direct image URL</option>
@@ -1757,7 +1860,7 @@
               </div>
 
               <!-- BG Preset Color -->
-              <div>
+              <div id="item-color-wrapper">
                 <span class="block text-[10px] font-mono uppercase font-bold text-[#5E548E]/80 mb-2">Background Tint Preset:</span>
                 <div class="d-flex gap-2">
                   <label class="flex-1 text-center py-2 border rounded-xl cursor-pointer hover:bg-white text-[11px] select-none text-[#5E548E]">
